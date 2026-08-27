@@ -30,7 +30,7 @@ const SAMPLE_QUOTE = "Quero colocar minha vida nos eixos.";
 export default function OnboardingScreen() {
   const { isDark } = useTheme();
   const { completeOnboarding, signOut } = useSession();
-  const { step, progress, answers, plan, setAnswer, selectArea, goNext, goBack } = useOnboardingFlow({
+  const { step, progress, answers, plan, error, setAnswer, selectArea, goNext, goBack } = useOnboardingFlow({
     onFinish: completeOnboarding,
     onExit: signOut,
   });
@@ -63,6 +63,7 @@ export default function OnboardingScreen() {
             {step === "identity" ? (
               <IdentityStep
                 value={answers.identity}
+                error={error}
                 onChangeText={(value) => setAnswer("identity", value)}
                 onContinue={goNext}
               />
@@ -76,6 +77,7 @@ export default function OnboardingScreen() {
               <MotivationStep
                 areaLabel={areaLabel}
                 value={answers.motivation}
+                error={error}
                 onChangeText={(value) => setAnswer("motivation", value)}
                 onContinue={goNext}
               />
@@ -84,6 +86,7 @@ export default function OnboardingScreen() {
             {step === "barriers" ? (
               <BarriersStep
                 value={answers.barriers}
+                error={error}
                 onChangeText={(value) => setAnswer("barriers", value)}
                 onContinue={goNext}
               />

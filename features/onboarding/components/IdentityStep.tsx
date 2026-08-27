@@ -7,11 +7,12 @@ import { PrimaryButton } from "./PrimaryButton";
 
 type IdentityStepProps = {
   value: string;
+  error?: string | null;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function IdentityStep({ value, onChangeText, onContinue }: IdentityStepProps) {
+export function IdentityStep({ value, onChangeText, onContinue, error }: IdentityStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -37,6 +38,7 @@ export function IdentityStep({ value, onChangeText, onContinue }: IdentityStepPr
       <View style={{ marginTop: 26 }}>
         <AnswerField
           value={value}
+          error={error}
           onChangeText={onChangeText}
           placeholder="Conte do seu jeito..."
           hint="Sem resposta certa"

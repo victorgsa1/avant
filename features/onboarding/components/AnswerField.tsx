@@ -18,6 +18,8 @@ type AnswerFieldProps = {
   height?: number;
   /** Dictation isn't wired up yet — the affordance lives in the card corner. */
   onPressVoice?: () => void;
+  /** Deterministic validation message (UX only; backend is authoritative). */
+  error?: string | null;
 };
 
 export function AnswerField({
@@ -27,14 +29,20 @@ export function AnswerField({
   hint,
   height = 186,
   onPressVoice,
+  error,
 }: AnswerFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   // The design's "active" card (ember border + halo) is the state once the
   // person has actually started answering, not merely tapped in.
   const active = focused || value.length > 0;
+  const invalid = !!error;
+
+  const borderColor = invalid ? colors.danger : active ? colors.ember : colors.line;
+  const haloColor = invalid ? colors.danger : colors.ember;
 
   return (
+    <View>
     <View
       className="rounded-[26px]"
       style={{
@@ -43,9 +51,9 @@ export function AnswerField({
         paddingTop: active ? 19 : 20,
         paddingBottom: active ? 14 : 15,
         backgroundColor: colors.surface,
-        borderWidth: active ? 1.5 : 1,
-        borderColor: active ? colors.ember : colors.line,
-        boxShadow: active ? `0 0 0 4px ${colors.ember}17` : `0 2px 10px ${colors.shadow}`,
+        borderWidth: active || invalid ? 1.5 : 1,
+        borderColor,
+        boxShadow: active || invalid ? `0 0 0 4px ${haloColor}17` : `0 2px 10px ${colors.shadow}`,
       }}
     >
       <Pressable
@@ -103,6 +111,17 @@ export function AnswerField({
           {value.length} / {MAX_LENGTH}
         </AppText>
       </View>
+    </View>
+
+      {invalid ? (
+        <AppText
+          family="manrope"
+          weight="medium"
+          style={{ marginTop: 10, paddingHorizontal: 6, fontSize: 12.5, lineHeight: 18, color: colors.danger }}
+        >
+          {error}
+        </AppText>
+      ) : null}
     </View>
   );
 }

@@ -69,6 +69,7 @@ export type ThemeColors = {
   // Misc
   trackIdle: string;
   success: string;
+  danger: string;
 };
 
 export const lightColors: ThemeColors = {
@@ -115,6 +116,7 @@ export const lightColors: ThemeColors = {
 
   trackIdle: "#E9DDD2",
   success: "#5FA05A",
+  danger: "#C4442E",
 };
 
 // Neutral greys, not warm ones. The light theme is warm paper because that IS
@@ -175,6 +177,7 @@ export const darkColors: ThemeColors = {
 
   trackIdle: "#3D3D3D",
   success: "#6FB56A",
+  danger: "#E0705A",
 };
 
 // Brand marks that must never be recolored by the theme.

@@ -8,11 +8,12 @@ import { PrimaryButton } from "./PrimaryButton";
 type MotivationStepProps = {
   areaLabel: string;
   value: string;
+  error?: string | null;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function MotivationStep({ areaLabel, value, onChangeText, onContinue }: MotivationStepProps) {
+export function MotivationStep({ areaLabel, value, onChangeText, onContinue, error }: MotivationStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -44,6 +45,7 @@ export function MotivationStep({ areaLabel, value, onChangeText, onContinue }: M
       <View style={{ marginTop: 24 }}>
         <AnswerField
           value={value}
+          error={error}
           onChangeText={onChangeText}
           placeholder="Isso é importante para mim porque..."
           hint="Sem resposta certa"

@@ -8,11 +8,12 @@ import { PrimaryButton } from "./PrimaryButton";
 
 type BarriersStepProps = {
   value: string;
+  error?: string | null;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function BarriersStep({ value, onChangeText, onContinue }: BarriersStepProps) {
+export function BarriersStep({ value, onChangeText, onContinue, error }: BarriersStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -39,6 +40,7 @@ export function BarriersStep({ value, onChangeText, onContinue }: BarriersStepPr
         <AnswerField
           height={172}
           value={value}
+          error={error}
           onChangeText={onChangeText}
           placeholder="Pode ser procrastinação, falta de tempo, cansaço, perder um dia e desistir..."
           hint="Seja honesto — isso muda seu plano"
