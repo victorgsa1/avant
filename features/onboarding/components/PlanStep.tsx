@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import type { StarterPlan } from "../types";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type PlanStepProps = {
   plan: StarterPlan;
+  error?: string | null;
+  loading?: boolean;
   onConfirm: () => void;
   onAdjust?: () => void;
 };
@@ -68,7 +70,7 @@ function PlanRow({ icon, title, detail, tone = "default" }: PlanRowProps) {
   );
 }
 
-export function PlanStep({ plan, onConfirm, onAdjust }: PlanStepProps) {
+export function PlanStep({ plan, error, loading, onConfirm, onAdjust }: PlanStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1" style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
@@ -161,7 +163,22 @@ export function PlanStep({ plan, onConfirm, onAdjust }: PlanStepProps) {
         Isso faz sentido para você?
       </AppText>
 
-      <PrimaryButton label="Sim, esse é meu plano" onPress={onConfirm} withArrow={false} />
+      {error ? (
+        <AppText
+          family="manrope"
+          weight="medium"
+          style={{ marginBottom: 10, textAlign: "center", fontSize: 12.5, lineHeight: 18, color: colors.danger }}
+        >
+          {error}
+        </AppText>
+      ) : null}
+
+      <PrimaryButton
+        label="Sim, esse é meu plano"
+        onPress={onConfirm}
+        loading={loading}
+        withArrow={false}
+      />
 
       <Pressable onPress={onAdjust} className="items-center" style={{ marginTop: 12 }}>
         <AppText family="archivo" weight="extraBold" style={{ fontSize: 14, color: colors.emberInk }}>

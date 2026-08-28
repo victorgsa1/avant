@@ -3,16 +3,17 @@ import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
 import { IdentityArt } from "./illustrations";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type IdentityStepProps = {
   value: string;
   error?: string | null;
+  loading?: boolean;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function IdentityStep({ value, onChangeText, onContinue, error }: IdentityStepProps) {
+export function IdentityStep({ value, onChangeText, onContinue, error, loading }: IdentityStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -62,7 +63,7 @@ export function IdentityStep({ value, onChangeText, onContinue, error }: Identit
       </AppText>
 
       <View style={{ marginTop: 16 }}>
-        <PrimaryButton label="Continuar" onPress={onContinue} />
+        <PrimaryButton label="Continuar" loading={loading} onPress={onContinue} />
       </View>
     </View>
   );

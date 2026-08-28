@@ -4,7 +4,7 @@ import { AppText } from "@/components/ui/AppText";
 import { HeartFilledIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { PeakArt } from "./illustrations";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 // The closing screen has no progress header — the flow is done, so the only
 // chrome is the art and a single CTA.

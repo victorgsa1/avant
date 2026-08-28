@@ -1,5 +1,5 @@
 import Constants, { AppOwnership } from "expo-constants";
-import { usePathname } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { Tabs, TabList, TabSlot, TabTrigger } from "expo-router/ui";
 import type { ComponentType } from "react";
 import { Pressable, View } from "react-native";
@@ -62,7 +62,7 @@ export default function TabsLayout() {
         </View>
 
         <Pressable
-          onPress={() => {}}
+          onPress={() => router.push("/new-action")}
           className="items-center justify-center rounded-full"
           style={{
             width: 62,

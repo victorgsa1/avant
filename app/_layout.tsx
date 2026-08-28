@@ -17,6 +17,7 @@ import {
 } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/components/theme/ThemeProvider";
@@ -49,11 +50,19 @@ function RootNavigator() {
     },
   };
 
+  // Enquanto hidrata os tokens não montamos nenhuma rota: montar /login e
+  // trocar para /(tabs) logo em seguida causaria um flash de tela errada.
+  if (status === "loading") {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+  }
+
   return (
     <NavigationThemeProvider value={navigationTheme}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Protected guard={status === "signedOut"}>
           <Stack.Screen name="login" />
+          <Stack.Screen name="sign-in" />
+          <Stack.Screen name="sign-up" />
         </Stack.Protected>
 
         <Stack.Protected guard={status === "onboarding"}>
@@ -62,6 +71,9 @@ function RootNavigator() {
 
         <Stack.Protected guard={status === "ready"}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="new-action" options={{ presentation: "modal" }} />
+          <Stack.Screen name="chat/index" />
+          <Stack.Screen name="chat/[id]" />
         </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>

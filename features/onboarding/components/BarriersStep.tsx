@@ -4,16 +4,17 @@ import { ShineIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
 import { PathArt } from "./illustrations";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type BarriersStepProps = {
   value: string;
   error?: string | null;
+  loading?: boolean;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function BarriersStep({ value, onChangeText, onContinue, error }: BarriersStepProps) {
+export function BarriersStep({ value, onChangeText, onContinue, error, loading }: BarriersStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -56,7 +57,7 @@ export function BarriersStep({ value, onChangeText, onContinue, error }: Barrier
         </AppText>
       </View>
 
-      <PrimaryButton label="Criar meu plano" onPress={onContinue} emphasis="strong" />
+      <PrimaryButton label="Criar meu plano" loading={loading} onPress={onContinue} emphasis="strong" />
     </View>
   );
 }

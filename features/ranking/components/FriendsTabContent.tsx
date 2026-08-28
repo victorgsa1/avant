@@ -1,10 +1,21 @@
 import { Pressable, View } from "react-native";
+import { router } from "expo-router";
 import { AppText } from "@/components/ui/AppText";
-import { PlusIcon, SearchIcon } from "@/components/ui/icons";
+import { EmptyState } from "@/components/layout/ScreenState";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import type { Friend } from "../types";
+import type { FriendRequestResponse, FriendResponse } from "@/services/http/types";
+import { FriendRequestsSection } from "./FriendRequestsSection";
+import { FriendSearch } from "./FriendSearch";
 
-function FriendRow({ friend }: { friend: Friend }) {
+function FriendRow({
+  friend,
+  onPressMessage,
+  onPressRemove,
+}: {
+  friend: FriendResponse;
+  onPressMessage: () => void;
+  onPressRemove: () => void;
+}) {
   const { colors } = useTheme();
   return (
     <View
@@ -16,89 +27,110 @@ function FriendRow({ friend }: { friend: Friend }) {
         style={{ width: 38, height: 38, backgroundColor: colors.surfaceSunken }}
       >
         <AppText family="archivo" weight="extraBold" style={{ fontSize: 14, color: colors.textMuted }}>
-          {friend.name.charAt(0)}
+          {friend.name.charAt(0).toUpperCase()}
         </AppText>
       </View>
+
       <View style={{ flex: 1, minWidth: 0 }}>
         <AppText family="archivo" weight="bold" style={{ fontSize: 14.5, letterSpacing: -0.2, color: colors.text }}>
           {friend.name}
         </AppText>
         <AppText family="manrope" weight="medium" style={{ fontSize: 11.5, color: colors.textMuted, marginTop: 2 }}>
-          {friend.handle}
+          @{friend.username} · nível {friend.level}
         </AppText>
       </View>
-      <View className="flex-row items-center" style={{ gap: 9 }}>
-        <View className="overflow-hidden rounded-full" style={{ width: 44, height: 5, backgroundColor: colors.bg }}>
-          <View className="h-full rounded-full" style={{ width: `${friend.pct}%`, backgroundColor: colors.ember }} />
-        </View>
-        <AppText family="archivo" weight="extraBold" style={{ fontSize: 12.5, color: colors.textMuted }}>
-          {friend.pct}%
+
+      <Pressable
+        onPress={onPressMessage}
+        className="rounded-full"
+        style={{ paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.emberTint }}
+      >
+        <AppText family="archivo" weight="extraBold" style={{ fontSize: 12, color: colors.emberInk }}>
+          Conversar
         </AppText>
-      </View>
+      </Pressable>
+
+      <Pressable onPress={onPressRemove} hitSlop={8}>
+        <AppText family="manrope" weight="bold" style={{ fontSize: 18, color: colors.textFaint }}>
+          ×
+        </AppText>
+      </Pressable>
     </View>
   );
 }
 
 type FriendsTabContentProps = {
-  friends: Friend[];
-  onPressAddFriends?: () => void;
+  friends: FriendResponse[];
+  incoming: FriendRequestResponse[];
+  outgoing: FriendRequestResponse[];
+  busy: boolean;
+  actionError: string | null;
+  onAccept: (requestId: string) => void;
+  onDecline: (requestId: string) => void;
+  onRemove: (userId: string) => void;
+  onChanged: () => void;
 };
 
-export function FriendsTabContent({ friends, onPressAddFriends }: FriendsTabContentProps) {
+export function FriendsTabContent({
+  friends,
+  incoming,
+  outgoing,
+  busy,
+  actionError,
+  onAccept,
+  onDecline,
+  onRemove,
+  onChanged,
+}: FriendsTabContentProps) {
   const { colors } = useTheme();
+
   return (
     <>
+      <FriendRequestsSection
+        incoming={incoming}
+        outgoing={outgoing}
+        busy={busy}
+        onAccept={onAccept}
+        onDecline={onDecline}
+      />
+
       <View className="flex-row items-baseline justify-between px-6" style={{ paddingTop: 24 }}>
         <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
           Seus amigos
         </AppText>
         <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: colors.textMuted }}>
-          {friends.length} amigos
+          {friends.length} {friends.length === 1 ? "amigo" : "amigos"}
         </AppText>
       </View>
 
-      <View className="px-6" style={{ paddingTop: 14 }}>
-        <View
-          className="flex-row items-center rounded-2xl"
-          style={{ gap: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, padding: 14, paddingHorizontal: 15 }}
-        >
-          <SearchIcon />
-          <AppText family="manrope" weight="medium" style={{ fontSize: 13.5, color: colors.textFaint }}>
-            Nome ou @usuário
-          </AppText>
-        </View>
-      </View>
+      <FriendSearch onChanged={onChanged} />
 
-      <View className="px-6" style={{ paddingTop: 8 }}>
-        {friends.map((friend) => (
-          <FriendRow key={friend.handle} friend={friend} />
-        ))}
-      </View>
-
-      <View className="px-6" style={{ paddingTop: 22 }}>
-        <Pressable
-          onPress={onPressAddFriends}
-          className="flex-row items-center justify-center rounded-full"
-          style={{
-            gap: 9,
-            backgroundColor: colors.ember,
-            paddingVertical: 16,
-            paddingHorizontal: 22,
-            boxShadow: `0 12px 26px ${colors.ember}38`,
-          }}
-        >
-          <PlusIcon size={16} />
-          <AppText family="archivo" weight="extraBold" style={{ fontSize: 14.5, letterSpacing: -0.1, color: colors.onEmber }}>
-            Adicionar amigos
-          </AppText>
-        </Pressable>
+      {actionError ? (
         <AppText
           family="manrope"
           weight="medium"
-          style={{ fontSize: 11.5, color: colors.textMuted, textAlign: "center", marginTop: 10 }}
+          style={{ paddingHorizontal: 26, paddingTop: 10, fontSize: 12.5, color: colors.danger }}
         >
-          Busque por nome, @usuário ou compartilhe seu convite.
+          {actionError}
         </AppText>
+      ) : null}
+
+      <View className="px-6" style={{ paddingTop: 8 }}>
+        {friends.length === 0 ? (
+          <EmptyState
+            title="Nenhum amigo por aqui ainda"
+            description="Busque pelo @usuário de alguém para começar a comparar consistência."
+          />
+        ) : (
+          friends.map((friend) => (
+            <FriendRow
+              key={friend.id}
+              friend={friend}
+              onPressMessage={() => router.push(`/chat?friendId=${friend.id}`)}
+              onPressRemove={() => onRemove(friend.id)}
+            />
+          ))
+        )}
       </View>
     </>
   );

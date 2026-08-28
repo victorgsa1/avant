@@ -1,18 +1,20 @@
-import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui/AppText";
 import { AppleIcon, GoogleIcon, MailIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { SocialButton } from "@/features/auth/components/SocialButton";
-import { useSession } from "@/features/auth/SessionProvider";
 import { LoginArt } from "@/features/onboarding/components/illustrations";
 import { OnboardingCanvas } from "@/features/onboarding/components/OnboardingCanvas";
 
 export default function LoginScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { signIn } = useSession();
+  // Login social ainda não está ligado — avisamos em vez de fingir que foi.
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
 
   return (
     <OnboardingCanvas>
@@ -60,9 +62,13 @@ export default function LoginScreen() {
             // The logo has to invert with the button, so it can't rely on the
             // icon's own (always-light) default color.
             icon={<AppleIcon size={18} color={colors.onContrast} />}
-            onPress={signIn}
+            onPress={() => setSocialNotice("Login com Apple chega em breve. Use seu e-mail por enquanto.")}
           />
-          <SocialButton label="Continuar com Google" icon={<GoogleIcon size={18} />} onPress={signIn} />
+          <SocialButton
+            label="Continuar com Google"
+            icon={<GoogleIcon size={18} />}
+            onPress={() => setSocialNotice("Login com Google chega em breve. Use seu e-mail por enquanto.")}
+          />
 
           <View className="flex-row items-center" style={{ gap: 12, marginVertical: 3 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
@@ -72,10 +78,31 @@ export default function LoginScreen() {
             <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
           </View>
 
-          <SocialButton label="Continuar com e-mail" icon={<MailIcon size={18} />} onPress={signIn} />
+          <SocialButton
+            label="Continuar com e-mail"
+            icon={<MailIcon size={18} />}
+            onPress={() => router.push("/sign-up")}
+          />
         </View>
 
-        <Pressable onPress={signIn} style={{ marginTop: 18 }}>
+        {socialNotice ? (
+          <AppText
+            family="manrope"
+            weight="medium"
+            style={{
+              marginTop: 14,
+              maxWidth: 300,
+              textAlign: "center",
+              fontSize: 12.5,
+              lineHeight: 18,
+              color: colors.textMuted,
+            }}
+          >
+            {socialNotice}
+          </AppText>
+        ) : null}
+
+        <Pressable onPress={() => router.push("/sign-in")} style={{ marginTop: 18 }}>
           <AppText family="manrope" weight="semiBold" style={{ fontSize: 13, color: colors.textMuted }}>
             Já tem conta?{" "}
             <AppText family="archivo" weight="extraBold" style={{ fontSize: 13, color: colors.emberInk }}>

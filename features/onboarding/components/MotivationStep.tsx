@@ -3,17 +3,18 @@ import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
 import { HealthArt } from "./illustrations";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type MotivationStepProps = {
   areaLabel: string;
   value: string;
   error?: string | null;
+  loading?: boolean;
   onChangeText: (value: string) => void;
   onContinue: () => void;
 };
 
-export function MotivationStep({ areaLabel, value, onChangeText, onContinue, error }: MotivationStepProps) {
+export function MotivationStep({ areaLabel, value, onChangeText, onContinue, error, loading }: MotivationStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -54,7 +55,7 @@ export function MotivationStep({ areaLabel, value, onChangeText, onContinue, err
 
       <View style={{ flex: 1, minHeight: 16 }} />
 
-      <PrimaryButton label="Continuar" onPress={onContinue} />
+      <PrimaryButton label="Continuar" loading={loading} onPress={onContinue} />
     </View>
   );
 }

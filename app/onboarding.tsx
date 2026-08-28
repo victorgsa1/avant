@@ -11,17 +11,7 @@ import { PlanStep } from "@/features/onboarding/components/PlanStep";
 import { StartStep } from "@/features/onboarding/components/StartStep";
 import { StepHeader } from "@/features/onboarding/components/StepHeader";
 import { useOnboardingFlow } from "@/features/onboarding/hooks/useOnboardingFlow";
-import type { AreaId } from "@/features/onboarding/types";
-
-const AREA_LABELS: Record<AreaId, string> = {
-  saude: "saúde",
-  rotina: "rotina",
-  trabalho: "trabalho",
-  estudos: "estudos",
-  financas: "finanças",
-  relacionamentos: "relacionamentos",
-  outro: "sua meta",
-};
+import { AREA_LABELS } from "@/features/onboarding/planBuilder";
 
 // Shown in the "Você disse" callback before the person has typed anything —
 // the design's own sample answer.
@@ -30,13 +20,14 @@ const SAMPLE_QUOTE = "Quero colocar minha vida nos eixos.";
 export default function OnboardingScreen() {
   const { isDark } = useTheme();
   const { completeOnboarding, signOut } = useSession();
-  const { step, progress, answers, plan, error, setAnswer, selectArea, goNext, goBack } = useOnboardingFlow({
-    onFinish: completeOnboarding,
-    onExit: signOut,
-  });
+  const { step, progress, answers, plan, error, submitting, setAnswer, selectArea, goNext, goBack } =
+    useOnboardingFlow({
+      onFinish: completeOnboarding,
+      onExit: () => void signOut(),
+    });
 
   const quote = answers.identity.trim() || SAMPLE_QUOTE;
-  const areaLabel = answers.area ? AREA_LABELS[answers.area] : "sua meta";
+  const areaLabel = answers.area ? AREA_LABELS[answers.area].toLowerCase() : "sua meta";
 
   if (step === "start") {
     return (
@@ -64,6 +55,7 @@ export default function OnboardingScreen() {
               <IdentityStep
                 value={answers.identity}
                 error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("identity", value)}
                 onContinue={goNext}
               />
@@ -78,6 +70,7 @@ export default function OnboardingScreen() {
                 areaLabel={areaLabel}
                 value={answers.motivation}
                 error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("motivation", value)}
                 onContinue={goNext}
               />
@@ -87,12 +80,15 @@ export default function OnboardingScreen() {
               <BarriersStep
                 value={answers.barriers}
                 error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("barriers", value)}
                 onContinue={goNext}
               />
             ) : null}
 
-            {step === "plan" ? <PlanStep plan={plan} onConfirm={goNext} onAdjust={goBack} /> : null}
+            {step === "plan" ? (
+              <PlanStep plan={plan} error={error} loading={submitting} onConfirm={goNext} onAdjust={goBack} />
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

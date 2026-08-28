@@ -1,6 +1,15 @@
 import { Pressable, View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
-import { BookIcon, ChevronRightIcon, FocusIcon, HeartIcon, PlusIcon } from "@/components/ui/icons";
+import {
+  BarsIcon,
+  BookIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  FocusIcon,
+  HeartIcon,
+  PeopleIcon,
+  PlusIcon,
+} from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import type { AreaKey, ProfileArea } from "../types";
 
@@ -8,11 +17,15 @@ const AREA_ICONS: Record<AreaKey, typeof HeartIcon> = {
   health: HeartIcon,
   focus: FocusIcon,
   reading: BookIcon,
+  routine: ClockIcon,
+  money: BarsIcon,
+  people: PeopleIcon,
+  generic: FocusIcon,
 };
 
 function AreaRow({ area }: { area: ProfileArea }) {
   const { colors } = useTheme();
-  const Icon = AREA_ICONS[area.key];
+  const Icon = AREA_ICONS[area.key] ?? AREA_ICONS.generic;
   return (
     <View
       className="flex-row items-center"

@@ -1,5 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { areasApi, habitsApi, onboardingApi, usersApi } from "@/services/api";
+import { userMessage } from "@/services/http/ApiError";
+import type { OnboardingQuestion } from "@/services/http/types";
 import type { AreaId, OnboardingAnswers, OnboardingStep, StarterPlan } from "../types";
+import { AREA_LABELS, buildStarterHabit, buildStarterPlan } from "../planBuilder";
 import { localValidateOnboardingAnswer, messageForCode } from "../validation";
 
 const STEPS: OnboardingStep[] = ["identity", "clarify", "motivation", "barriers", "plan", "start"];
@@ -15,12 +19,13 @@ const PROGRESS: Record<OnboardingStep, { filled: number; partial?: number }> = {
   start: { filled: 5 },
 };
 
-// Passos de texto livre → chave da resposta. `clarify` (área) e `plan` não
-// são texto e não passam pela validação.
-const TEXT_STEP_KEY: Partial<Record<OnboardingStep, "identity" | "motivation" | "barriers">> = {
-  identity: "identity",
-  motivation: "motivation",
-  barriers: "barriers",
+/** Passos de texto livre → campo local + pergunta correspondente na API. */
+const TEXT_STEPS: Partial<
+  Record<OnboardingStep, { key: "identity" | "motivation" | "barriers"; question: OnboardingQuestion }>
+> = {
+  identity: { key: "identity", question: "FUTURE_SELF" },
+  motivation: { key: "motivation", question: "MOTIVATION" },
+  barriers: { key: "barriers", question: "OBSTACLES" },
 };
 
 const EMPTY_ANSWERS: OnboardingAnswers = {
@@ -30,49 +35,118 @@ const EMPTY_ANSWERS: OnboardingAnswers = {
   area: null,
 };
 
-// Placeholder for the plan the backend will generate from the answers.
-const STARTER_PLAN: StarterPlan = {
-  summary: "Você quer se tornar alguém mais disciplinado e voltar a cuidar do seu corpo.",
-  title: "Treinar 3x por semana",
-  window: "Depois das 19h",
-  normalDays: "Treino de 45 min",
-  hardDays: "15 minutos já contam",
-  missedDay: "Não compense. Apenas volte no próximo.",
-};
-
 type UseOnboardingFlowOptions = {
   onFinish: () => void;
   onExit: () => void;
 };
 
+/**
+ * Fluxo do onboarding.
+ *
+ * Cada resposta de texto é validada localmente (UX) e depois enviada para
+ * `POST /v1/onboarding/answers`, que é a autoridade — inclusive para o
+ * cooldown após 3 tentativas inválidas. Nada de IA em nenhum ponto: o
+ * plano inicial é derivado deterministicamente da área escolhida.
+ */
 export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>(EMPTY_ANSWERS);
-  // Erro de validação do passo atual (só UX — o backend revalida e é a
-  // autoridade final quando o onboarding é submetido).
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // Evita reenviar ao servidor uma resposta já aceita quando a pessoa
+  // volta e avança de novo sem editar.
+  const acceptedText = useRef<Partial<Record<OnboardingQuestion, string>>>({});
 
-  // `onFinish`/`onExit` mutate session state, so they have to stay out of the
-  // setState updater — React may replay it during render.
-  const goNext = useCallback(() => {
-    const step = STEPS[index];
-    const key = TEXT_STEP_KEY[step];
+  const step = STEPS[index];
 
-    if (key) {
-      const result = localValidateOnboardingAnswer(answers[key]);
-      if (!result.valid) {
-        setError(messageForCode(result.code));
+  const advance = useCallback(() => {
+    setError(null);
+    setIndex((current) => Math.min(current + 1, STEPS.length - 1));
+  }, []);
+
+  /** Valida no cliente, envia ao backend e avança se for aceita. */
+  const submitTextStep = useCallback(
+    async (key: "identity" | "motivation" | "barriers", question: OnboardingQuestion) => {
+      const text = answers[key];
+
+      const local = localValidateOnboardingAnswer(text);
+      if (!local.valid) {
+        setError(messageForCode(local.code));
         return;
       }
-    }
-    setError(null);
 
-    if (index === STEPS.length - 1) {
+      if (acceptedText.current[question] === text.trim()) {
+        advance();
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        const result = await onboardingApi.submit(question, text);
+        if (!result.accepted) {
+          // O backend manda a mensagem genérica pronta; não inventamos outra.
+          const suffix =
+            result.cooldownSeconds && result.code === "COOLDOWN"
+              ? ` (${result.cooldownSeconds}s)`
+              : "";
+          setError(`${result.message}${suffix}`);
+          return;
+        }
+        acceptedText.current[question] = text.trim();
+        advance();
+      } catch (requestError) {
+        setError(userMessage(requestError));
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [advance, answers],
+  );
+
+  /** Grava identidade, área e primeiro hábito. Só roda ao confirmar o plano. */
+  const commitPlan = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      await usersApi.putIdentity({
+        statement: answers.identity.trim(),
+        whyItMatters: answers.motivation.trim() || undefined,
+      });
+
+      const area = await areasApi.create({
+        name: AREA_LABELS[answers.area ?? "outro"],
+        whyImportant: answers.motivation.trim() || undefined,
+      });
+
+      await habitsApi.create(buildStarterHabit(answers.area, area.id));
+      advance();
+    } catch (requestError) {
+      setError(userMessage(requestError));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [advance, answers]);
+
+  const goNext = useCallback(() => {
+    if (submitting) return;
+
+    const textStep = TEXT_STEPS[step];
+    if (textStep) {
+      void submitTextStep(textStep.key, textStep.question);
+      return;
+    }
+
+    if (step === "plan") {
+      void commitPlan();
+      return;
+    }
+
+    if (step === "start") {
       onFinish();
       return;
     }
-    setIndex(index + 1);
-  }, [answers, index, onFinish]);
+
+    advance();
+  }, [advance, commitPlan, onFinish, step, submitTextStep, submitting]);
 
   const goBack = useCallback(() => {
     setError(null);
@@ -92,18 +166,24 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     setAnswers((current) => ({ ...current, area }));
   }, []);
 
+  const plan: StarterPlan = useMemo(
+    () => buildStarterPlan(answers.area, answers.identity),
+    [answers.area, answers.identity],
+  );
+
   return useMemo(
     () => ({
-      step: STEPS[index],
-      progress: PROGRESS[STEPS[index]],
+      step,
+      progress: PROGRESS[step],
       answers,
-      plan: STARTER_PLAN,
+      plan,
       error,
+      submitting,
       setAnswer,
       selectArea,
       goNext,
       goBack,
     }),
-    [answers, error, goBack, goNext, index, selectArea, setAnswer],
+    [answers, error, goBack, goNext, plan, selectArea, setAnswer, step, submitting],
   );
 }

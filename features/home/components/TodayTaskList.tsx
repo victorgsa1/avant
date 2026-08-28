@@ -19,13 +19,19 @@ function TaskCheckbox({ done }: { done: boolean }) {
   return <View className="rounded-full" style={{ width: 22, height: 22, borderWidth: 1.3, borderColor: colors.lineStrong }} />;
 }
 
-function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => void }) {
+function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
   const { colors } = useTheme();
   return (
     <Pressable
       onPress={() => onToggle(task.id)}
+      disabled={task.done || task.pending}
       className="flex-row items-center gap-4"
-      style={{ paddingVertical: 17, borderBottomWidth: 1, borderBottomColor: colors.line }}
+      style={{
+        paddingVertical: 17,
+        opacity: task.pending ? 0.55 : 1,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.line,
+      }}
     >
       <TaskCheckbox done={task.done} />
       <AppText
@@ -46,7 +52,7 @@ type TodayTaskListProps = {
   tasks: Task[];
   doneCount: number;
   totalTasks: number;
-  onToggle: (id: number) => void;
+  onToggle: (id: string) => void;
 };
 
 export function TodayTaskList({ tasks, doneCount, totalTasks, onToggle }: TodayTaskListProps) {

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import type { AreaId } from "../types";
-import { PrimaryButton } from "./PrimaryButton";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
 
