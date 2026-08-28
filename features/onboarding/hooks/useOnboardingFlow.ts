@@ -1,9 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { areasApi, habitsApi, onboardingApi, usersApi } from "@/services/api";
+import { areasApi, habitsApi, onboardingApi, todayApi, usersApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type { OnboardingQuestion } from "@/services/http/types";
 import type { AreaId, OnboardingAnswers, OnboardingStep, StarterPlan } from "../types";
-import { AREA_LABELS, buildStarterHabit, buildStarterPlan } from "../planBuilder";
+import {
+  AREA_LABELS,
+  buildStarterHabit,
+  buildStarterPlan,
+  weekdayFromApiDate,
+} from "../planBuilder";
 import { localValidateOnboardingAnswer, messageForCode } from "../validation";
 
 const STEPS: OnboardingStep[] = ["identity", "clarify", "motivation", "barriers", "plan", "start"];
@@ -117,7 +122,12 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
         whyImportant: answers.motivation.trim() || undefined,
       });
 
-      await habitsApi.create(buildStarterHabit(answers.area, area.id));
+      // O "hoje" que vale é o do servidor (timezone das preferências), não
+      // o do aparelho — senão o primeiro movimento pode cair fora do dia.
+      const today = await todayApi.get();
+      await habitsApi.create(
+        buildStarterHabit(answers.area, weekdayFromApiDate(today.date), area.id),
+      );
       advance();
     } catch (requestError) {
       setError(userMessage(requestError));

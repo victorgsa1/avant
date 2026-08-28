@@ -6,7 +6,8 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { TextField } from "@/components/ui/TextField";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AuthShell } from "@/features/auth/components/AuthShell";
-import { areasApi, habitsApi } from "@/services/api";
+import { scheduleDays, weekdayFromApiDate } from "@/features/onboarding/planBuilder";
+import { areasApi, habitsApi, todayApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type { AreaResponse } from "@/services/http/types";
 
@@ -56,8 +57,10 @@ export default function NewActionScreen() {
     setSaving(true);
     setFormError(null);
     try {
-      // Dias espaçados a partir de segunda, para não empilhar tudo no mesmo dia.
-      const days = [1, 3, 5, 2, 4, 6, 0].slice(0, weeklyTarget).sort((a, b) => a - b);
+      // Dias espaçados a partir de hoje — a ação nova já vale para o dia
+      // atual. "Hoje" é o do servidor (timezone das preferências).
+      const today = await todayApi.get();
+      const days = scheduleDays(weeklyTarget, weekdayFromApiDate(today.date));
       await habitsApi.create({
         title: trimmed,
         areaId,

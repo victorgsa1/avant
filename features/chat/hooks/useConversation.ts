@@ -145,7 +145,7 @@ export function useConversation(conversationId: string) {
    * socket estiver fora). O `clientId` garante que um retry não duplique.
    */
   const send = useCallback(
-    async (body: string, senderId: string) => {
+    async (body: string) => {
       const text = body.trim();
       if (!text) return;
 
@@ -187,7 +187,6 @@ export function useConversation(conversationId: string) {
       } catch {
         settle(null, true);
       }
-      void senderId;
     },
     [conversationId],
   );

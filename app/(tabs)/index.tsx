@@ -19,6 +19,7 @@ export default function HojeScreen() {
 
   const firstName = user?.name?.split(" ")[0] ?? "";
   const avatarInitial = (user?.name ?? "?").trim().charAt(0).toUpperCase();
+  const nextAction = view?.nextAction ?? null;
 
   if (loading && !view) {
     return (
@@ -87,14 +88,14 @@ export default function HojeScreen() {
           </View>
         ) : null}
 
-        {view.nextAction ? (
+        {nextAction ? (
           <NextActionCard
-            windowLabel={view.nextAction.windowLabel}
-            title={view.nextAction.title}
+            windowLabel={nextAction.windowLabel}
+            title={nextAction.title}
             minutes={0}
-            xp={view.nextAction.xp}
+            xp={nextAction.xp}
             insight={view.insight?.body}
-            onPressStart={() => toggleTask(view.nextAction!.id)}
+            onPressStart={() => toggleTask(nextAction.id)}
           />
         ) : (
           <View className="px-5" style={{ marginTop: 26 }}>

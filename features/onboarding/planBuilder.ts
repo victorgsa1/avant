@@ -129,12 +129,54 @@ export function buildStarterPlan(area: AreaId | null, identity: string): Starter
   };
 }
 
-/** Payload do primeiro hábito, pronto para `POST /v1/habits`. */
-export function buildStarterHabit(area: AreaId | null, areaId?: string): CreateHabitInput {
-  const bp = blueprintFor(area);
+/**
+ * Dia da semana (0=domingo) a partir da data local do usuário devolvida
+ * pela API (`GET /v1/today` → `date`, "YYYY-MM-DD").
+ *
+ * NÃO usamos `new Date().getDay()` do aparelho: o servidor planeja pelo
+ * timezone salvo em `UserPreferences`, que pode divergir do fuso do
+ * dispositivo — e aí agendaríamos um dia que, para o backend, não é hoje.
+ * Meio-dia UTC evita qualquer borda de horário de verão.
+ */
+export function weekdayFromApiDate(isoDate: string): number {
+  return new Date(`${isoDate}T12:00:00Z`).getUTCDay();
+}
 
-  // Distribui os dias da semana de forma espaçada a partir de segunda.
-  const days = [1, 3, 5, 2, 4, 6, 0].slice(0, bp.weeklyTarget).sort((a, b) => a - b);
+/**
+ * Escolhe os dias da semana começando por HOJE.
+ *
+ * O princípio do produto é colocar em movimento rápido: se o primeiro
+ * compromisso cair só na semana que vem, a pessoa termina o onboarding sem
+ * nada para fazer. Incluindo hoje, o primeiro movimento existe já.
+ */
+export function scheduleDays(weeklyTarget: number, today: number): number[] {
+  // Espaçamento ideal entre as ocorrências, a partir de hoje.
+  const step = Math.max(1, Math.round(7 / weeklyTarget));
+  const days = new Set<number>();
+
+  for (let i = 0; days.size < weeklyTarget && i < 7; i += 1) {
+    days.add((today + i * step) % 7);
+  }
+  // Se o passo colidiu antes de completar a meta, preenche o que faltar.
+  for (let offset = 0; days.size < weeklyTarget && offset < 7; offset += 1) {
+    days.add((today + offset) % 7);
+  }
+
+  return [...days].sort((a, b) => a - b);
+}
+
+/**
+ * Payload do primeiro hábito, pronto para `POST /v1/habits`.
+ * `todayWeekday` vem da data local devolvida pela API — ver
+ * `weekdayFromApiDate`.
+ */
+export function buildStarterHabit(
+  area: AreaId | null,
+  todayWeekday: number,
+  areaId?: string,
+): CreateHabitInput {
+  const bp = blueprintFor(area);
+  const days = scheduleDays(bp.weeklyTarget, todayWeekday);
 
   return {
     title: bp.habitTitle,

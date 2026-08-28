@@ -129,10 +129,7 @@ export default function ConversationScreen() {
           </AppText>
         ) : null}
 
-        <MessageComposer
-          onSend={(body) => void send(body, user?.id ?? "")}
-          onTyping={notifyTyping}
-        />
+        <MessageComposer onSend={(body) => void send(body)} onTyping={notifyTyping} />
       </KeyboardAvoidingView>
     </Screen>
   );
