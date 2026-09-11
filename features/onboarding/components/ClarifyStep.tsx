@@ -8,6 +8,7 @@ import {
   BriefcaseIcon,
   ClockIcon,
   HeartIcon,
+  MusicIcon,
   PeopleIcon,
   PlusThinIcon,
   QuoteIcon,
@@ -25,6 +26,7 @@ const AREAS: { id: AreaId; label: string; Icon: IconComponent }[] = [
   { id: "estudos", label: "Estudos", Icon: BookIcon },
   { id: "financas", label: "Finanças", Icon: BarsIcon },
   { id: "relacionamentos", label: "Relacionamentos", Icon: PeopleIcon },
+  { id: "criatividade", label: "Criatividade", Icon: MusicIcon },
 ];
 
 type ClarifyStepProps = {

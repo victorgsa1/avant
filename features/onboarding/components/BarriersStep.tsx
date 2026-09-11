@@ -3,6 +3,8 @@ import { AppText } from "@/components/ui/AppText";
 import { ShineIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
+import { QuickAnswerChips } from "./QuickAnswerChips";
+import { QUICK_ANSWERS } from "../quickAnswers";
 import { PathArt } from "./illustrations";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
@@ -46,6 +48,7 @@ export function BarriersStep({ value, onChangeText, onContinue, error, loading }
           placeholder="Pode ser procrastinação, falta de tempo, cansaço, perder um dia e desistir..."
           hint="Seja honesto — isso muda seu plano"
         />
+        <QuickAnswerChips suggestions={QUICK_ANSWERS.barriers} value={value} onChangeText={onChangeText} />
       </View>
 
       <View style={{ flex: 1, minHeight: 18 }} />

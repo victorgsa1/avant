@@ -2,6 +2,8 @@ import { View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
+import { QuickAnswerChips } from "./QuickAnswerChips";
+import { QUICK_ANSWERS } from "../quickAnswers";
 import { HealthArt } from "./illustrations";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
@@ -51,6 +53,7 @@ export function MotivationStep({ areaLabel, value, onChangeText, onContinue, err
           placeholder="Isso é importante para mim porque..."
           hint="Sem resposta certa"
         />
+        <QuickAnswerChips suggestions={QUICK_ANSWERS.motivation} value={value} onChangeText={onChangeText} />
       </View>
 
       <View style={{ flex: 1, minHeight: 16 }} />

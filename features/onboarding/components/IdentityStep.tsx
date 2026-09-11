@@ -2,6 +2,8 @@ import { View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
+import { QuickAnswerChips } from "./QuickAnswerChips";
+import { QUICK_ANSWERS } from "../quickAnswers";
 import { IdentityArt } from "./illustrations";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
@@ -44,6 +46,7 @@ export function IdentityStep({ value, onChangeText, onContinue, error, loading }
           placeholder="Conte do seu jeito..."
           hint="Sem resposta certa"
         />
+        <QuickAnswerChips suggestions={QUICK_ANSWERS.identity} value={value} onChangeText={onChangeText} />
       </View>
 
       <View style={{ flex: 1, minHeight: 16 }} />

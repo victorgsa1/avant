@@ -1,13 +1,19 @@
-import type { ReactNode } from "react";
-import { View } from "react-native";
+import type { ComponentType, ReactNode } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import {
+  BarsIcon,
+  BookIcon,
+  BriefcaseIcon,
   CalendarDotIcon,
+  ClockIcon,
   CloudIcon,
   ComebackIcon,
   DumbbellIcon,
   HeartFilledIcon,
+  MusicIcon,
+  PeopleIcon,
   SparkleIcon,
 } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -16,11 +22,54 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type PlanStepProps = {
   plan: StarterPlan;
+  /** A prévia do servidor ainda está sendo montada. */
+  planLoading?: boolean;
+  /** A prévia falhou e o card mostra o plano padrão da área. */
+  isFallback?: boolean;
   error?: string | null;
   loading?: boolean;
   onConfirm: () => void;
   onAdjust?: () => void;
 };
+
+type IconComponent = ComponentType<{ size?: number; color?: string }>;
+
+const AREA_ICONS: Record<string, IconComponent> = {
+  Saúde: DumbbellIcon,
+  Rotina: ClockIcon,
+  Trabalho: BriefcaseIcon,
+  Estudos: BookIcon,
+  Finanças: BarsIcon,
+  Relacionamentos: PeopleIcon,
+  Criatividade: MusicIcon,
+};
+
+function PlanLoading() {
+  const { colors } = useTheme();
+  return (
+    <View
+      className="items-center justify-center rounded-[26px]"
+      style={{
+        marginTop: 14,
+        gap: 14,
+        paddingVertical: 48,
+        paddingHorizontal: 24,
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.emberChip,
+      }}
+    >
+      <ActivityIndicator color={colors.ember} />
+      <AppText
+        family="manrope"
+        weight="semiBold"
+        style={{ textAlign: "center", fontSize: 13.5, lineHeight: 20, color: colors.textMuted }}
+      >
+        Entendendo o que você disse e montando seu plano…
+      </AppText>
+    </View>
+  );
+}
 
 type PlanRowProps = {
   icon: ReactNode;
@@ -71,32 +120,12 @@ function PlanRow({ icon, title, detail, tone = "default" }: PlanRowProps) {
   );
 }
 
-export function PlanStep({ plan, error, loading, onConfirm, onAdjust }: PlanStepProps) {
+/** O card do plano (principal + versões) e as complementares, se houver. */
+function PlanDetails({ plan, isFallback }: { plan: StarterPlan; isFallback?: boolean }) {
   const { colors } = useTheme();
+  const AreaIcon = AREA_ICONS[plan.areaName] ?? SparkleIcon;
   return (
-    <View className="flex-1" style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
-      <View style={{ paddingHorizontal: 4 }}>
-        <AppText
-          family="archivo"
-          weight="black"
-          style={{ marginTop: 20, fontSize: 30, lineHeight: 32.5, letterSpacing: -1.3, color: colors.text }}
-        >
-          Seu ponto de partida
-        </AppText>
-        <View className="flex-row" style={{ marginTop: 10, gap: 9, maxWidth: 326 }}>
-          <View style={{ marginTop: 2 }}>
-            <SparkleIcon />
-          </View>
-          <AppText
-            family="manrope"
-            weight="semiBold"
-            style={{ flex: 1, fontSize: 13.5, lineHeight: 20, color: colors.textMuted }}
-          >
-            {plan.summary}
-          </AppText>
-        </View>
-      </View>
-
+    <>
       <View
         className="overflow-hidden rounded-[26px]"
         style={{
@@ -122,14 +151,14 @@ export function PlanStep({ plan, error, loading, onConfirm, onAdjust }: PlanStep
             className="items-center justify-center rounded-[14px]"
             style={{ width: 42, height: 42, backgroundColor: colors.ember, boxShadow: `0 6px 14px ${colors.ember}47` }}
           >
-            <DumbbellIcon />
+            <AreaIcon size={20} color={colors.onEmber} />
           </View>
           <View className="flex-1">
             <AppText family="archivo" weight="black" style={{ fontSize: 18, letterSpacing: -0.5, color: colors.text }}>
               {plan.title}
             </AppText>
             <AppText family="manrope" weight="bold" style={{ marginTop: 2, fontSize: 12.5, color: colors.emberInk }}>
-              {plan.window}
+              {plan.areaName} · {plan.window}
             </AppText>
           </View>
         </View>
@@ -138,6 +167,76 @@ export function PlanStep({ plan, error, loading, onConfirm, onAdjust }: PlanStep
         <PlanRow icon={<CloudIcon />} title="Nos dias difíceis" detail={plan.hardDays} />
         <PlanRow icon={<ComebackIcon />} title="Se você perder um dia" detail={plan.missedDay} tone="highlight" />
       </View>
+
+      {plan.extras.length > 0 ? (
+        <View
+          className="rounded-[20px]"
+          style={{ marginTop: 12, paddingVertical: 12, paddingHorizontal: 16, gap: 10, backgroundColor: colors.surface }}
+        >
+          <AppText family="manrope" weight="bold" style={{ fontSize: 11.5, color: colors.textFaint }}>
+            Para acompanhar (opcional, sem XP)
+          </AppText>
+          {plan.extras.map((extra) => (
+            <View key={extra.title}>
+              <AppText family="archivo" weight="extraBold" style={{ fontSize: 14, color: colors.textStrong }}>
+                {extra.title}
+              </AppText>
+              <AppText family="manrope" weight="semiBold" style={{ marginTop: 1, fontSize: 12, color: colors.textMuted }}>
+                {extra.detail}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {isFallback ? (
+        <AppText
+          family="manrope"
+          weight="medium"
+          style={{ marginTop: 10, paddingHorizontal: 4, fontSize: 12, lineHeight: 17, color: colors.textFaint }}
+        >
+          Não conseguimos personalizar agora, então este é o plano padrão da área. Dá para ajustar depois.
+        </AppText>
+      ) : null}
+    </>
+  );
+}
+
+export function PlanStep({
+  plan,
+  planLoading,
+  isFallback,
+  error,
+  loading,
+  onConfirm,
+  onAdjust,
+}: PlanStepProps) {
+  const { colors } = useTheme();
+  return (
+    <View className="flex-1" style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
+      <View style={{ paddingHorizontal: 4 }}>
+        <AppText
+          family="archivo"
+          weight="black"
+          style={{ marginTop: 20, fontSize: 30, lineHeight: 32.5, letterSpacing: -1.3, color: colors.text }}
+        >
+          Seu ponto de partida
+        </AppText>
+        <View className="flex-row" style={{ marginTop: 10, gap: 9, maxWidth: 326 }}>
+          <View style={{ marginTop: 2 }}>
+            <SparkleIcon />
+          </View>
+          <AppText
+            family="manrope"
+            weight="semiBold"
+            style={{ flex: 1, fontSize: 13.5, lineHeight: 20, color: colors.textMuted }}
+          >
+            {plan.summary}
+          </AppText>
+        </View>
+      </View>
+
+      {planLoading ? <PlanLoading /> : <PlanDetails plan={plan} isFallback={isFallback} />}
 
       <View
         className="flex-row rounded-[20px]"
@@ -178,6 +277,7 @@ export function PlanStep({ plan, error, loading, onConfirm, onAdjust }: PlanStep
         label="Sim, esse é meu plano"
         onPress={onConfirm}
         loading={loading}
+        disabled={planLoading}
         withArrow={false}
       />
 

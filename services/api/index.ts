@@ -31,6 +31,7 @@ import type {
   ProgressOverviewResponse,
   ProgressSummaryResponse,
   PlanAreaKey,
+  PlanPreviewResponse,
   PublicUser,
   RankingPeriod,
   RankingResponse,
@@ -189,8 +190,16 @@ export const onboardingApi = {
    * Gera o plano inicial no servidor a partir das respostas aceitas.
    * Idempotente: chamar duas vezes não cria dois planos.
    */
+  /** Prévia do plano a partir do que a pessoa escreveu — não grava nada. */
+  previewPlan: (area: PlanAreaKey) =>
+    http.post<PlanPreviewResponse>("/onboarding/plan/preview", { area }),
+
+  /** Grava o plano (a mesma prévia, se ela ainda vale para as respostas). */
   generatePlan: (area: PlanAreaKey) =>
     http.post<GeneratedPlanResponse>("/onboarding/plan", { area }),
+
+  /** DEV: apaga respostas, identidade e plano ativo para refazer o onboarding. */
+  reset: () => http.delete<void>("/onboarding"),
 };
 
 export const competitionsApi = {

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,6 +12,7 @@ import { useSession } from "@/features/auth/SessionProvider";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { authApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+import { confirmAction } from "@/services/native/confirm";
 
 function lastUsedLabel(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -21,16 +22,8 @@ function lastUsedLabel(iso: string): string {
   return `há ${Math.round(hours / 24)} dias`;
 }
 
-/** Confirmação que funciona no nativo e não trava no web. */
 function confirm(title: string, message: string, onConfirm: () => void) {
-  if (Platform.OS === "web") {
-    onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: "Cancelar", style: "cancel" },
-    { text: "Confirmar", style: "destructive", onPress: onConfirm },
-  ]);
+  confirmAction({ title, message, destructive: true, onConfirm });
 }
 
 export default function SecurityScreen() {

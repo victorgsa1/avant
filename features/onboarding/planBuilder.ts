@@ -1,3 +1,4 @@
+import type { PlanPreviewResponse } from "@/services/http/types";
 import type { AreaId, StarterPlan } from "./types";
 
 /**
@@ -19,6 +20,7 @@ export const AREA_LABELS: Record<AreaId, string> = {
   estudos: "Estudos",
   financas: "Finanças",
   relacionamentos: "Relacionamentos",
+  criatividade: "Criatividade",
   outro: "Meu objetivo",
 };
 
@@ -95,6 +97,16 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     standard: "Uma conversa de 20 minutos sem celular",
     minimum: "Uma mensagem sincera (5 min)",
   },
+  criatividade: {
+    habitTitle: "Praticar minha arte",
+    windowLabel: "Depois das 19h",
+    startMinute: 19 * 60,
+    weeklyTarget: 5,
+    xpBase: 25,
+    difficulty: 2,
+    standard: "30 minutos de prática focada",
+    minimum: "10 minutos de prática",
+  },
   outro: {
     habitTitle: "Meu primeiro passo do dia",
     windowLabel: "No horário que der",
@@ -111,22 +123,82 @@ function blueprintFor(area: AreaId | null): AreaBlueprint {
   return BLUEPRINTS[area ?? "outro"];
 }
 
-/** Resumo mostrado no card do plano — usa a fala da pessoa, sem inventar. */
-export function buildStarterPlan(area: AreaId | null, identity: string): StarterPlan {
-  const bp = blueprintFor(area);
+const MISSED_DAY = "Não compense. Apenas volte no próximo.";
+
+function summaryFor(identity: string): string {
   const trimmed = identity.trim();
-  const summary = trimmed
+  return trimmed
     ? `Você disse: “${trimmed}”. Vamos começar por aqui.`
     : "Vamos começar por um passo pequeno e possível.";
+}
 
+/** 1170 → "A partir das 19h30". */
+function windowFromMinute(startMinute: number): string {
+  const hours = Math.floor(startMinute / 60);
+  const minutes = startMinute % 60;
+  return `A partir das ${hours}h${minutes ? String(minutes).padStart(2, "0") : ""}`;
+}
+
+/**
+ * Plano de reserva, a partir só da área: usado quando a prévia do servidor
+ * não responde. Usa a fala da pessoa no resumo, sem inventar.
+ */
+export function buildStarterPlan(area: AreaId | null, identity: string): StarterPlan {
+  const bp = blueprintFor(area);
   return {
-    summary,
+    summary: summaryFor(identity),
+    areaName: AREA_LABELS[area ?? "outro"],
     title: bp.habitTitle,
     window: bp.windowLabel,
     normalDays: bp.standard,
     hardDays: bp.minimum,
-    missedDay: "Não compense. Apenas volte no próximo.",
+    missedDay: MISSED_DAY,
+    extras: [],
   };
+}
+
+/** A prévia do servidor (IA a partir da fala) no formato do card do plano. */
+export function starterPlanFromPreview(preview: PlanPreviewResponse, identity: string): StarterPlan | null {
+  const [primary, ...rest] = preview.habits;
+  if (!primary) return null;
+
+  return {
+    // Mostrar o que a IA entendeu (e não só repetir a fala) é o que deixa
+    // claro para a pessoa que o plano partiu do que ela disse.
+    summary: preview.understanding?.trim() || summaryFor(identity),
+    areaName: primary.areaName,
+    title: primary.title,
+    window: windowFromMinute(primary.startMinute),
+    normalDays: primary.standardVersion,
+    hardDays: primary.minimumVersion,
+    missedDay: MISSED_DAY,
+    extras: rest.map((habit) => ({
+      title: habit.title,
+      detail: `${habit.weeklyTarget}x por semana · ${habit.minimumVersion} nos dias difíceis`,
+    })),
+  };
+}
+
+/**
+ * Palpite de área a partir da fala, só para pré-selecionar o chip do passo
+ * seguinte. A pessoa pode trocar; o plano de verdade vem da IA.
+ */
+const AREA_HINTS: [AreaId, RegExp][] = [
+  ["criatividade", /guitarr|viol[aã]o|m[uú]sic|\bcant(ar|or|ora)\b|\bbanda\b|piano|bateri|desenh|\bpint(ar|or|ura)|\barte\b|artista|escrev|escritor|fotograf|dan[cç]/],
+  ["saude", /academia|trein|muscula|corr(er|ida)|emagrec|peso|sa[uú]de|dieta|forma f[ií]sica|atleta/],
+  ["estudos", /estud|faculdade|prova|concurso|vestibular|ler mais|leitura|idioma|ingl[eê]s/],
+  ["financas", /dinheiro|finan[cç]|d[ií]vida|economiz|investi|poupar/],
+  ["trabalho", /trabalh|carreira|emprego|promo[cç][aã]o|empresa|neg[oó]cio|produtiv/],
+  ["relacionamentos", /fam[ií]lia|amig|namor|casamento|filh|relacionamento/],
+  ["rotina", /rotina|organiz|acordar cedo|dormir|sono|disciplina/],
+];
+
+export function suggestAreaFromText(text: string): AreaId | null {
+  const normalized = text.toLowerCase();
+  for (const [area, pattern] of AREA_HINTS) {
+    if (pattern.test(normalized)) return area;
+  }
+  return null;
 }
 
 /**

@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onboardingApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type { GeneratedPlanResponse, OnboardingQuestion } from "@/services/http/types";
 import type { AreaId, OnboardingAnswers, OnboardingStep, StarterPlan } from "../types";
-import { buildStarterPlan } from "../planBuilder";
+import { buildStarterPlan, starterPlanFromPreview, suggestAreaFromText } from "../planBuilder";
 import { localValidateOnboardingAnswer, messageForCode } from "../validation";
 
 const STEPS: OnboardingStep[] = ["identity", "clarify", "motivation", "barriers", "plan", "start"];
@@ -45,8 +45,9 @@ type UseOnboardingFlowOptions = {
  *
  * Cada resposta de texto é validada localmente (UX) e depois enviada para
  * `POST /v1/onboarding/answers`, que é a autoridade — inclusive para o
- * cooldown após 3 tentativas inválidas. Nada de IA em nenhum ponto: o
- * plano inicial é derivado deterministicamente da área escolhida.
+ * cooldown após 3 tentativas inválidas. O plano mostrado no fim é a
+ * prévia do servidor (IA a partir da fala da pessoa); a área escolhida é
+ * só uma dica, e o blueprint local da área entra se a prévia falhar.
  */
 export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions) {
   const [index, setIndex] = useState(0);
@@ -168,12 +169,52 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     setAnswers((current) => ({ ...current, area }));
   }, []);
 
-  // Prévia local enquanto a pessoa decide: instantânea e sem custo. O
-  // plano que vale é o que o servidor devolve ao confirmar.
+  // Chegando no passo da área, já deixamos marcada a que a fala sugere
+  // ("guitarrista" → Criatividade). A pessoa pode trocar à vontade.
+  useEffect(() => {
+    if (step !== "clarify" || answers.area) return;
+    const suggested = suggestAreaFromText(answers.identity);
+    if (suggested) setAnswers((current) => ({ ...current, area: suggested }));
+  }, [answers.area, answers.identity, step]);
+
+  /**
+   * Prévia do plano: a IA estrutura o que a pessoa ESCREVEU (a área é só
+   * dica) e o servidor guarda o rascunho — "Sim, esse é meu plano" grava
+   * exatamente o que foi mostrado. Refaz quando as respostas mudam.
+   */
+  const [preview, setPreview] = useState<{ key: string; plan: StarterPlan | null } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewKey = JSON.stringify([answers.area, answers.identity, answers.motivation, answers.barriers]);
+
+  useEffect(() => {
+    if (step !== "plan" || preview?.key === previewKey) return;
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    onboardingApi
+      .previewPlan(answers.area ?? "outro")
+      .then((response) => starterPlanFromPreview(response, answers.identity))
+      .catch(() => null)
+      .then((plan) => {
+        if (cancelled) return;
+        setPreview({ key: previewKey, plan });
+        setPreviewLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // `previewKey` já resume área e respostas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey, step]);
+
+  // Se a prévia do servidor falhar, o blueprint local da área segura a tela.
   const plan: StarterPlan = useMemo(
-    () => buildStarterPlan(answers.area, answers.identity),
-    [answers.area, answers.identity],
+    () => preview?.plan ?? buildStarterPlan(answers.area, answers.identity),
+    [answers.area, answers.identity, preview],
   );
+  const planLoading = step === "plan" && (previewLoading || preview?.key !== previewKey);
+  const planIsFallback = !planLoading && preview?.plan === null;
 
   return useMemo(
     () => ({
@@ -181,6 +222,8 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       progress: PROGRESS[step],
       answers,
       plan,
+      planLoading,
+      planIsFallback,
       generatedPlan,
       error,
       submitting,
@@ -189,6 +232,19 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       goNext,
       goBack,
     }),
-    [answers, error, generatedPlan, goBack, goNext, plan, selectArea, setAnswer, step, submitting],
+    [
+      answers,
+      error,
+      generatedPlan,
+      goBack,
+      goNext,
+      plan,
+      planIsFallback,
+      planLoading,
+      selectArea,
+      setAnswer,
+      step,
+      submitting,
+    ],
   );
 }

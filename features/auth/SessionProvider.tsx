@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { Platform } from "react-native";
-import { authApi, usersApi } from "@/services/api";
+import { authApi, onboardingApi, usersApi } from "@/services/api";
 import { chatSocket } from "@/services/chat/chatSocket";
 import { authTokens } from "@/services/http/apiClient";
 import { ApiError } from "@/services/http/ApiError";
@@ -35,6 +35,8 @@ type SessionValue = {
   signUp: (input: { email: string; password: string; name: string }) => Promise<void>;
   /** Marca o onboarding como concluído (após a identidade ser salva). */
   completeOnboarding: () => void;
+  /** DEV: apaga o onboarding no servidor e volta para o fluxo inicial. */
+  resetOnboarding: () => Promise<void>;
   signOut: () => Promise<void>;
   /** Recarrega `/me` — usado após editar perfil, ganhar XP, etc. */
   refreshUser: () => Promise<void>;
@@ -148,6 +150,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const completeOnboarding = useCallback(() => setStatus("ready"), []);
 
+  const resetOnboarding = useCallback(async () => {
+    await onboardingApi.reset();
+    if (mounted.current) setStatus("onboarding");
+  }, []);
+
   const signOut = useCallback(async () => {
     const tokens = authTokens.current;
     if (tokens) {
@@ -164,8 +171,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ status, user, signIn, signUp, completeOnboarding, signOut, refreshUser }),
-    [completeOnboarding, refreshUser, signIn, signOut, signUp, status, user],
+    () => ({ status, user, signIn, signUp, completeOnboarding, resetOnboarding, signOut, refreshUser }),
+    [completeOnboarding, refreshUser, resetOnboarding, signIn, signOut, signUp, status, user],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

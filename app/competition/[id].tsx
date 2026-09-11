@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -10,6 +10,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { competitionsApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+import { confirmAction } from "@/services/native/confirm";
 import type { CompetitionResponse } from "@/services/http/types";
 
 /** "2026-03-10" → "10/03". A API manda data local, não instante. */
@@ -107,16 +108,8 @@ export default function CompetitionDetailScreen() {
     useCallback(() => competitionsApi.get(String(id)), [id]),
   );
 
-  const confirm = (title: string, message: string, onConfirm: () => void) => {
-    if (Platform.OS === "web") {
-      onConfirm();
-      return;
-    }
-    Alert.alert(title, message, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Confirmar", style: "destructive", onPress: onConfirm },
-    ]);
-  };
+  const confirm = (title: string, message: string, onConfirm: () => void) =>
+    confirmAction({ title, message, destructive: true, onConfirm });
 
   const run = (action: () => Promise<unknown>, thenBack = true) => {
     setBusy(true);

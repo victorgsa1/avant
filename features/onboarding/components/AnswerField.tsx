@@ -25,12 +25,15 @@ type AnswerFieldProps = {
   error?: string | null;
 };
 
-function joinDictation(base: string, spoken: string): string {
-  const text = spoken.trim();
+/** Acrescenta um trecho (ditado ou resposta pronta) ao que já foi escrito. */
+export function joinAnswer(base: string, addition: string): string {
+  const text = addition.trim();
   if (!text) return base;
   const separator = base && !/\s$/.test(base) ? " " : "";
   return `${base}${separator}${text}`.slice(0, MAX_LENGTH);
 }
+
+const joinDictation = joinAnswer;
 
 export function AnswerField({
   value,

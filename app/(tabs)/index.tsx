@@ -14,7 +14,15 @@ import { PrimaryDoneCard } from "@/features/home/components/PrimaryDoneCard";
 import { TodayTaskList } from "@/features/home/components/TodayTaskList";
 import { useHomeData } from "@/features/home/hooks/useHomeData";
 
-function StatusCard({ title, description }: { title: string; description?: string }) {
+function StatusCard({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: { label: string; onPress: () => void };
+}) {
   const { colors } = useTheme();
   return (
     <View className="px-5" style={{ marginTop: 26 }}>
@@ -22,7 +30,7 @@ function StatusCard({ title, description }: { title: string; description?: strin
         className="rounded-[26px]"
         style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}
       >
-        <EmptyState title={title} description={description} />
+        <EmptyState title={title} description={description} action={action} />
       </View>
     </View>
   );
@@ -42,6 +50,8 @@ export default function HojeScreen() {
     skipTask,
     respondToAdaptation,
     adaptationBusyId,
+    resumePausedPrimary,
+    resumingPaused,
     actionError,
   } = useHomeData();
 
@@ -173,6 +183,16 @@ export default function HojeScreen() {
           />
         ) : primary ? (
           <StatusCard title="Principal pulada hoje" description="Amanhã ela volta." />
+        ) : view.pausedPrimary ? (
+          // Pausar não é descanso: a principal só volta quando a pessoa retomar.
+          <StatusCard
+            title="Sua principal está pausada"
+            description={`"${view.pausedPrimary.title}" fica fora do seu dia até você retomar.`}
+            action={{
+              label: resumingPaused ? "Retomando…" : "Retomar agora",
+              onPress: resumePausedPrimary,
+            }}
+          />
         ) : (
           <StatusCard title="Dia de descanso" description="A principal volta amanhã." />
         )}

@@ -79,6 +79,41 @@ export function LogoutIcon({ size = 18, color: colorProp }: IconProps) {
   );
 }
 
+/** Mostrar senha: olho aberto. */
+export function EyeIcon({ size = 18, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.textMuted;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M1.8 10S4.8 4.2 10 4.2 18.2 10 18.2 10 15.2 15.8 10 15.8 1.8 10 1.8 10Z"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      <Circle cx={10} cy={10} r={2.6} stroke={color} strokeWidth={1.5} />
+    </Svg>
+  );
+}
+
+/** Ocultar senha: olho cortado. */
+export function EyeOffIcon({ size = 18, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.textMuted;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M8.2 4.4A7.9 7.9 0 0 1 10 4.2c5.2 0 8.2 5.8 8.2 5.8a14.6 14.6 0 0 1-2.3 3M5.3 5.8A14.3 14.3 0 0 0 1.8 10s3 5.8 8.2 5.8a7.6 7.6 0 0 0 3.9-1.1"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M8.2 8.2a2.6 2.6 0 0 0 3.6 3.6M2.5 2.5l15 15" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function TrendUpIcon({ size = 10, color: colorProp }: IconProps) {
   const { colors } = useTheme();
   const color = colorProp ?? colors.emberInk;
@@ -153,6 +188,19 @@ export function HeartIcon({ size = 19, color: colorProp }: IconProps) {
         strokeWidth={1.5}
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+/** Área Criatividade: nota musical. */
+export function MusicIcon({ size = 19, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.ember;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path d="M7.5 15V4.6l9-1.8V13" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={5.4} cy={15} r={2.1} stroke={color} strokeWidth={1.5} />
+      <Circle cx={14.4} cy={13} r={2.1} stroke={color} strokeWidth={1.5} />
     </Svg>
   );
 }

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SimpleTabBar } from "@/components/navigation/SimpleTabBar";
 import { PlusIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { DevResetOnboardingButton } from "@/features/onboarding/components/DevResetOnboardingButton";
 
 const ROUTES = ["/", "/ranking", "/progress", "/profile"];
 
@@ -75,6 +76,9 @@ export default function TabsLayout() {
           <PlusIcon color={colors.onEmber} />
         </Pressable>
       </View>
+
+      {/* DEV: some sozinho fora de __DEV__. Fica 12px acima da barra (62px). */}
+      <DevResetOnboardingButton bottom={insets.bottom + 12 + 62 + 12} />
 
       <TabList style={{ display: "none" }}>
         <TabTrigger name="index" href="/" />

@@ -20,6 +20,7 @@ const AREA_LABELS: Record<AreaId, string> = {
   estudos: "estudos",
   financas: "finanças",
   relacionamentos: "relacionamentos",
+  criatividade: "criatividade",
   outro: "sua meta",
 };
 
@@ -33,6 +34,11 @@ export default function OnboardingScreen() {
     progress,
     answers,
     plan,
+    planLoading,
+    planIsFallback,
+    generatedPlan,
+    error,
+    submitting,
     setAnswer,
     selectArea,
     goNext,
@@ -49,7 +55,7 @@ export default function OnboardingScreen() {
     return (
       <OnboardingCanvas>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <StartStep onStart={goNext} />
+        <StartStep onStart={goNext} habits={generatedPlan?.habits} />
       </OnboardingCanvas>
     );
   }
@@ -77,6 +83,8 @@ export default function OnboardingScreen() {
             {step === "identity" ? (
               <IdentityStep
                 value={answers.identity}
+                error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("identity", value)}
                 onContinue={goNext}
               />
@@ -95,6 +103,8 @@ export default function OnboardingScreen() {
               <MotivationStep
                 areaLabel={areaLabel}
                 value={answers.motivation}
+                error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("motivation", value)}
                 onContinue={goNext}
               />
@@ -103,13 +113,23 @@ export default function OnboardingScreen() {
             {step === "barriers" ? (
               <BarriersStep
                 value={answers.barriers}
+                error={error}
+                loading={submitting}
                 onChangeText={(value) => setAnswer("barriers", value)}
                 onContinue={goNext}
               />
             ) : null}
 
             {step === "plan" ? (
-              <PlanStep plan={plan} onConfirm={goNext} onAdjust={goBack} />
+              <PlanStep
+                plan={plan}
+                planLoading={planLoading}
+                isFallback={planIsFallback}
+                error={error}
+                loading={submitting}
+                onConfirm={goNext}
+                onAdjust={goBack}
+              />
             ) : null}
           </View>
         </ScrollView>

@@ -115,6 +115,7 @@ export interface HabitResponse {
   xpBase: number;
   difficulty: number;
   isAdaptive: boolean;
+  role: HabitRole;
 }
 
 export interface CreateHabitInput {
@@ -193,6 +194,8 @@ export interface TodayResponse {
   recovery: { startedAt: string; missedDays: number } | null;
   insight: { id: string; type: string; title: string; body: string } | null;
   unreadNotifications: number;
+  /** A principal pausada pela pessoa — sem ela, o dia fica sem compromisso. */
+  pausedPrimary: { id: string; title: string } | null;
 }
 
 // ----------------------------------------------------------------------
@@ -608,20 +611,34 @@ export type PlanAreaKey =
   | "estudos"
   | "financas"
   | "relacionamentos"
+  | "criatividade"
   | "outro";
+
+export interface PlanHabit {
+  title: string;
+  areaName: string;
+  /** A primeira é a principal do dia; as demais, complementares. */
+  role: HabitRole;
+  weeklyTarget: number;
+  startMinute: number;
+  minimumVersion: string;
+  standardVersion: string;
+  standardMinutes: number | null;
+}
 
 export interface GeneratedPlanResponse {
   identity: string;
   /** true quando a IA estruturou; false quando veio do plano determinístico. */
   fromAi: boolean;
   alreadyExisted: boolean;
-  habits: {
-    id: string;
-    title: string;
-    areaName: string;
-    weeklyTarget: number;
-    startMinute: number;
-    minimumVersion: string;
-    standardVersion: string;
-  }[];
+  habits: (PlanHabit & { id: string })[];
+}
+
+/** Prévia mostrada antes de confirmar — nada foi gravado ainda. */
+export interface PlanPreviewResponse {
+  identity: string;
+  fromAi: boolean;
+  /** "Você quer ..." — o que a IA entendeu das três respostas; null sem IA. */
+  understanding: string | null;
+  habits: PlanHabit[];
 }

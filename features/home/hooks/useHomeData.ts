@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { adaptationsApi, progressApi, rankingApi, todayApi } from "@/services/api";
+import { adaptationsApi, habitsApi, progressApi, rankingApi, todayApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type {
   AdaptationProposal,
@@ -180,6 +180,22 @@ export function useHomeData() {
     [adaptationBusyId, refresh],
   );
 
+  const [resumingPaused, setResumingPaused] = useState(false);
+
+  /** Retoma a principal pausada direto da Home e recarrega o dia. */
+  const resumePausedPrimary = useCallback(() => {
+    const paused = data?.today.pausedPrimary;
+    if (!paused || resumingPaused) return;
+    setResumingPaused(true);
+    setActionError(null);
+
+    void habitsApi
+      .resume(paused.id)
+      .then(() => refresh())
+      .catch((error) => setActionError(userMessage(error)))
+      .finally(() => setResumingPaused(false));
+  }, [data, refresh, resumingPaused]);
+
   const view = useMemo(() => {
     if (!data) return null;
 
@@ -220,6 +236,7 @@ export function useHomeData() {
       adaptations: data.adaptations,
       insight: today.insight,
       recovery: today.recovery,
+      pausedPrimary: today.pausedPrimary ?? null,
       primaryAction: primary
         ? {
             id: primary.id,
@@ -244,6 +261,8 @@ export function useHomeData() {
     skipTask,
     respondToAdaptation,
     adaptationBusyId,
+    resumePausedPrimary,
+    resumingPaused,
     actionError,
   };
 }

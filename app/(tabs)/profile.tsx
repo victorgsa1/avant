@@ -5,6 +5,7 @@ import { Screen } from "@/components/layout/Screen";
 import { useSession } from "@/features/auth/SessionProvider";
 import { AccountFooter } from "@/features/profile/components/AccountFooter";
 import { UnderConstruction } from "@/features/profile/components/UnderConstruction";
+import { confirmAction } from "@/services/native/confirm";
 
 const APP_VERSION = `v${Constants.expoConfig?.version ?? "0.0.1"}`;
 
@@ -28,7 +29,18 @@ export default function ProfileScreen() {
         <View className="flex-1 justify-center">
           <UnderConstruction />
         </View>
-        <AccountFooter versionLabel={APP_VERSION} onPressSignOut={() => void signOut()} />
+        <AccountFooter
+          versionLabel={APP_VERSION}
+          onPressSignOut={() =>
+            confirmAction({
+              title: "Sair da conta?",
+              message: "Você vai precisar entrar de novo com seu e-mail e senha.",
+              confirmLabel: "Sair",
+              destructive: true,
+              onConfirm: () => void signOut(),
+            })
+          }
+        />
       </View>
     </Screen>
   );

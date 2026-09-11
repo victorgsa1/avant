@@ -1,132 +1,129 @@
 import { useState } from "react";
-import { View } from "react-native";
-import { Pressable } from "@/components/ui/Pressable";
+import { View, type LayoutRectangle } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui/AppText";
-import { AppleIcon, GoogleIcon, MailIcon } from "@/components/ui/icons";
-import { useTheme } from "@/components/theme/ThemeProvider";
-import { SocialButton } from "@/features/auth/components/SocialButton";
-import { LoginArt } from "@/features/onboarding/components/illustrations";
-import { OnboardingCanvas } from "@/features/onboarding/components/OnboardingCanvas";
+import { Pressable } from "@/components/ui/Pressable";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { lightColors as colors } from "@/constants/theme";
+import { softEnter } from "@/features/auth/components/softEnter";
+import { WELCOME_BG, WelcomeScene } from "@/features/auth/components/WelcomeScene";
+
+/** Textos das ações ficam sobre a rocha escura: tons claros. */
+const ON_ROCK = {
+  text: "rgba(255, 255, 255, 0.78)",
+  link: "#FF8A4C",
+  whisper: "rgba(255, 255, 255, 0.46)",
+};
 
 export default function LoginScreen() {
-  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  // Login social ainda não está ligado — avisamos em vez de fingir que foi.
-  const [socialNotice, setSocialNotice] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
+  // A cena se ajusta ao espaço entre o texto e o rodapé e à altura das
+  // ações que ficam por cima da rocha — por isso os dois são medidos.
+  const [stage, setStage] = useState<Pick<LayoutRectangle, "width" | "height">>({ width: 0, height: 0 });
+  const [actionsHeight, setActionsHeight] = useState(0);
+
+  // Entrada em cascata: texto de cima para baixo, depois a cena monta de
+  // trás para a frente e, por fim, as ações.
+  const drop = (delay: number) => (reduceMotion ? undefined : softEnter({ delay, dy: -8 }));
+  const rise = (delay: number) => (reduceMotion ? undefined : softEnter({ delay, dy: 8 }));
 
   return (
-    <OnboardingCanvas>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    // A ilustração é clara e não tem versão escura: esta tela fica sempre no
+    // tema claro, com o creme da cena de fundo.
+    <View className="flex-1" style={{ backgroundColor: WELCOME_BG }}>
+      <StatusBar style="dark" />
 
-      <View
-        className="flex-1 items-center"
-        style={{ paddingTop: insets.top + 18, paddingBottom: insets.bottom + 20, paddingHorizontal: 26 }}
-      >
-        {/* No eyebrow label above the logo: the flag planted on the peak in
-            LoginArt already says "ponto de partida", and a badge over a
-            wordmark is a landing-page pattern, not an app one. */}
-        <View style={{ flex: 1, minHeight: 16 }} />
-
-        <LoginArt />
-
-        <AppText
-          family="archivo"
-          weight="black"
-          style={{ marginTop: 26, fontSize: 46, letterSpacing: -2.4, color: colors.text }}
-        >
-          Avant
-        </AppText>
-        <AppText
-          family="manrope"
-          weight="medium"
-          style={{
-            marginTop: 10,
-            maxWidth: 282,
-            fontSize: 15,
-            lineHeight: 23,
-            textAlign: "center",
-            color: colors.textMuted,
-          }}
-        >
-          Um plano que sobrevive aos dias difíceis. Comece pequeno, mas comece hoje.
-        </AppText>
-
-        <View style={{ flex: 1.1, minHeight: 26 }} />
-
-        <View className="w-full" style={{ gap: 11 }}>
-          <SocialButton
-            tone="contrast"
-            label="Continuar com Apple"
-            // The logo has to invert with the button, so it can't rely on the
-            // icon's own (always-light) default color.
-            icon={<AppleIcon size={18} color={colors.onContrast} />}
-            onPress={() => setSocialNotice("Login com Apple chega em breve. Use seu e-mail por enquanto.")}
-          />
-          <SocialButton
-            label="Continuar com Google"
-            icon={<GoogleIcon size={18} />}
-            onPress={() => setSocialNotice("Login com Google chega em breve. Use seu e-mail por enquanto.")}
-          />
-
-          <View className="flex-row items-center" style={{ gap: 12, marginVertical: 3 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-            <AppText family="manrope" weight="semiBold" style={{ fontSize: 11.5, color: colors.textWhisper }}>
-              ou
+      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 28 }}>
+        <View style={{ marginTop: 24 }}>
+          <Animated.View entering={drop(70)}>
+            <AppText family="archivo" weight="black" style={headline(colors.text)}>
+              Uma versão
             </AppText>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
-          </View>
-
-          <SocialButton
-            label="Continuar com e-mail"
-            icon={<MailIcon size={18} />}
-            onPress={() => router.push("/sign-up")}
-          />
+          </Animated.View>
+          <Animated.View entering={drop(140)}>
+            <AppText family="archivo" weight="black" style={headline(colors.ember)}>
+              melhor de você
+            </AppText>
+          </Animated.View>
+          <Animated.View entering={drop(210)}>
+            <AppText family="archivo" weight="black" style={headline(colors.text)}>
+              é possível.
+            </AppText>
+          </Animated.View>
         </View>
 
-        {socialNotice ? (
+        <Animated.View entering={drop(280)}>
+          <AppText
+            family="manrope"
+            weight="medium"
+            style={{ marginTop: 14, maxWidth: 290, fontSize: 15.5, lineHeight: 23, color: colors.textMuted }}
+          >
+            Crie hábitos, conquiste seus objetivos e evolua todos os dias.
+          </AppText>
+        </Animated.View>
+      </View>
+
+      {/* Sem `overflow: hidden`: o céu pode subir um pouco com o parallax; o
+          que afunda embaixo já é cortado pela borda da tela. */}
+      <View
+        style={{ flex: 1 }}
+        onLayout={(e) => setStage({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+      >
+        {actionsHeight > 0 ? (
+          <WelcomeScene width={stage.width} height={stage.height} actionsHeight={actionsHeight} delay={300} />
+        ) : null}
+      </View>
+
+      {/* As ações ficam por cima da rocha, que serve de fundo para elas. */}
+      <View
+        onLayout={(e) => setActionsHeight(e.nativeEvent.layout.height)}
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 26,
+          paddingBottom: insets.bottom + 18,
+        }}
+      >
+        <Animated.View entering={rise(800)}>
+          <PrimaryButton label="Começar" emphasis="strong" onPress={() => router.push("/sign-up")} />
+        </Animated.View>
+
+        <Animated.View entering={rise(900)} className="items-center">
+          <Pressable onPress={() => router.push("/sign-in")} hitSlop={8} style={{ marginTop: 20 }}>
+            <AppText family="manrope" weight="semiBold" style={{ fontSize: 14, color: ON_ROCK.text }}>
+              Já tem conta?{" "}
+              <AppText family="archivo" weight="extraBold" style={{ fontSize: 14, color: ON_ROCK.link }}>
+                Entrar
+              </AppText>
+            </AppText>
+          </Pressable>
+
           <AppText
             family="manrope"
             weight="medium"
             style={{
-              marginTop: 14,
-              maxWidth: 300,
+              marginTop: 16,
+              maxWidth: 260,
+              fontSize: 11.5,
+              lineHeight: 17,
               textAlign: "center",
-              fontSize: 12.5,
-              lineHeight: 18,
-              color: colors.textMuted,
+              color: ON_ROCK.whisper,
             }}
           >
-            {socialNotice}
+            Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade do Avant.
           </AppText>
-        ) : null}
-
-        <Pressable onPress={() => router.push("/sign-in")} style={{ marginTop: 18 }}>
-          <AppText family="manrope" weight="semiBold" style={{ fontSize: 13, color: colors.textMuted }}>
-            Já tem conta?{" "}
-            <AppText family="archivo" weight="extraBold" style={{ fontSize: 13, color: colors.emberInk }}>
-              Entrar
-            </AppText>
-          </AppText>
-        </Pressable>
-
-        <AppText
-          family="manrope"
-          weight="medium"
-          style={{
-            marginTop: 16,
-            maxWidth: 300,
-            fontSize: 11.5,
-            lineHeight: 17,
-            textAlign: "center",
-            color: colors.textWhisper,
-          }}
-        >
-          Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade do Avant.
-        </AppText>
+        </Animated.View>
       </View>
-    </OnboardingCanvas>
+    </View>
   );
+}
+
+function headline(color: string) {
+  return { fontSize: 36, lineHeight: 40, letterSpacing: -1.6, color };
 }

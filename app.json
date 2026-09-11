@@ -9,8 +9,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.avant.app",
-      "userInterfaceStyle": "automatic"
+      "bundleIdentifier": "br.com.avant.app",
+      "userInterfaceStyle": "automatic",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "O Avant transcreve sua fala em texto para preencher suas respostas.",
+        "NSMicrophoneUsageDescription": "O Avant usa o microfone para você responder falando.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.avant.app",
@@ -21,7 +26,12 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -61,6 +71,12 @@
           "locationWhenInUsePermission": "O Avant registra onde a ação principal aconteceu, só para validar a conclusão."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bf9c07c7-0bed-4c01-9049-e177c4706342"
+      }
+    }
   }
 }
