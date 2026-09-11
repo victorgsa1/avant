@@ -3,7 +3,7 @@
     "name": "avant",
     "slug": "avant",
     "scheme": "avant",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -33,7 +33,34 @@
       "expo-router",
       "expo-splash-screen",
       "expo-font",
-      "expo-secure-store"
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": false
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "O Avant usa o microfone para você responder falando.",
+          "speechRecognitionPermission": "O Avant transcreve sua fala em texto para preencher suas respostas."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Avant usa a câmera para você comprovar a ação principal do dia com uma foto.",
+          "photosPermission": false,
+          "microphonePermission": "O Avant usa o microfone para você responder falando."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Avant registra onde a ação principal aconteceu, só para validar a conclusão."
+        }
+      ]
     ]
   }
 }

@@ -6,9 +6,15 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { PeakArt } from "./illustrations";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
+type StartStepProps = {
+  onStart: () => void;
+  /** O que o servidor de fato criou. Vazio = caiu no plano padrão. */
+  habits?: { id: string; title: string; minimumVersion: string }[];
+};
+
 // The closing screen has no progress header — the flow is done, so the only
 // chrome is the art and a single CTA.
-export function StartStep({ onStart }: { onStart: () => void }) {
+export function StartStep({ onStart, habits = [] }: StartStepProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -56,23 +62,67 @@ export function StartStep({ onStart }: { onStart: () => void }) {
           </AppText>
         </View>
 
-        <View
-          className="flex-row items-center rounded-full"
-          style={{
-            marginTop: 26,
-            gap: 8,
-            paddingVertical: 9,
-            paddingHorizontal: 16,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.line,
-          }}
-        >
-          <HeartFilledIcon size={14} color={colors.ember} />
-          <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: colors.textMuted }}>
-            Seu primeiro passo está pronto
-          </AppText>
-        </View>
+        {/*
+          Mostra o plano que o servidor criou de verdade — inclusive a
+          versão mínima, que é a saída para os dias ruins.
+        */}
+        {habits.length > 0 ? (
+          <View
+            className="w-full rounded-[22px]"
+            style={{
+              marginTop: 24,
+              padding: 16,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.line,
+            }}
+          >
+            {habits.map((habit, index) => (
+              <View
+                key={habit.id}
+                style={{
+                  paddingTop: index === 0 ? 0 : 12,
+                  marginTop: index === 0 ? 0 : 12,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopColor: colors.line,
+                }}
+              >
+                <AppText
+                  family="archivo"
+                  weight="extraBold"
+                  style={{ fontSize: 14.5, color: colors.text }}
+                >
+                  {habit.title}
+                </AppText>
+                <AppText
+                  family="manrope"
+                  weight="medium"
+                  style={{ marginTop: 3, fontSize: 12.5, color: colors.textMuted }}
+                >
+                  Dia ruim: {habit.minimumVersion}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View
+            className="flex-row items-center rounded-full"
+            style={{
+              marginTop: 26,
+              gap: 8,
+              paddingVertical: 9,
+              paddingHorizontal: 16,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.line,
+            }}
+          >
+            <HeartFilledIcon size={14} color={colors.ember} />
+            <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: colors.textMuted }}>
+              Seu primeiro passo está pronto
+            </AppText>
+          </View>
+        )}
 
         <View style={{ flex: 1.2, minHeight: 26 }} />
 

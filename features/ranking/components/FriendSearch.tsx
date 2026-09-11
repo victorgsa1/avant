@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator, TextInput, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { SearchIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";

@@ -1,6 +1,7 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavRankingIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -36,6 +37,7 @@ export function SimpleTabBar({ activeIndex }: { activeIndex: number }) {
         return (
           <Pressable
             key={tab.label}
+            haptic="selection"
             onPress={() => router.navigate(tab.href)}
             className="items-center justify-center rounded-[22px]"
             style={[

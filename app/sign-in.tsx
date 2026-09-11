@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { router } from "expo-router";
 import { AppText } from "@/components/ui/AppText";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";

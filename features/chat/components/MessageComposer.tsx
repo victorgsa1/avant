@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowRightIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";

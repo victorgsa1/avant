@@ -1,37 +1,71 @@
 import * as SystemUI from "expo-system-ui";
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useColorScheme } from "react-native";
 import { darkColors, lightColors, type ThemeColors } from "@/constants/theme";
+import { uiPreferences, type ThemeMode } from "@/services/storage/preferencesStorage";
 
 type ThemeValue = {
   colors: ThemeColors;
   scheme: "light" | "dark";
   isDark: boolean;
+  /** "system" segue o aparelho; as outras duas fixam a aparência. */
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
 };
 
 const ThemeContext = createContext<ThemeValue | null>(null);
 
-// Follows the phone's own light/dark setting. `useColorScheme` re-renders on
-// change, so flipping the system toggle restyles the app live — there is no
-// in-app override on purpose.
+// Por padrão segue o ajuste de claro/escuro do aparelho — `useColorScheme`
+// re-renderiza na troca, então virar o interruptor do sistema restila o app
+// ao vivo. A tela de Aparência pode fixar claro ou escuro; a escolha fica em
+// AsyncStorage e volta na próxima abertura.
 //
-// This only works because app.json sets `userInterfaceStyle: "automatic"`.
-// With the Expo default ("light") the OS pins the app to light mode and
-// `useColorScheme()` always returns "light", no matter what this code does.
+// Isso só funciona porque app.json define `userInterfaceStyle: "automatic"`.
+// Com o padrão do Expo ("light") o SO prende o app em claro e
+// `useColorScheme()` sempre devolve "light", não importa o que este código
+// faça.
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const systemScheme = useColorScheme() === "dark" ? "dark" : "light";
+  const [mode, setModeState] = useState<ThemeMode>("system");
 
-  const value = useMemo<ThemeValue>(
-    () => ({
+  useEffect(() => {
+    let active = true;
+    void uiPreferences.getThemeMode().then((stored) => {
+      if (active) setModeState(stored);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setMode = useCallback((next: ThemeMode) => {
+    // Aplica na hora e persiste em segundo plano: a troca de aparência não
+    // deve esperar disco.
+    setModeState(next);
+    void uiPreferences.setThemeMode(next);
+  }, []);
+
+  const value = useMemo<ThemeValue>(() => {
+    const scheme = mode === "system" ? systemScheme : mode;
+    return {
       colors: scheme === "dark" ? darkColors : lightColors,
       scheme,
       isDark: scheme === "dark",
-    }),
-    [scheme],
-  );
+      mode,
+      setMode,
+    };
+  }, [mode, setMode, systemScheme]);
 
-  // The native root view sits under React's tree; without this it stays the
-  // launch color and flashes light when opening the app in dark mode.
+  // A view raiz nativa fica embaixo da árvore do React; sem isto ela
+  // continua com a cor de splash e pisca claro ao abrir no escuro.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(value.colors.bg);
   }, [value.colors.bg]);

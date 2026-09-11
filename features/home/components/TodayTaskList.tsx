@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { CheckmarkIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -19,11 +20,24 @@ function TaskCheckbox({ done }: { done: boolean }) {
   return <View className="rounded-full" style={{ width: 22, height: 22, borderWidth: 1.3, borderColor: colors.lineStrong }} />;
 }
 
-function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => void }) {
+function TaskRow({
+  task,
+  onToggle,
+  onSkip,
+}: {
+  task: Task;
+  onToggle: (id: string) => void;
+  onSkip?: (id: string) => void;
+}) {
   const { colors } = useTheme();
   return (
     <Pressable
       onPress={() => onToggle(task.id)}
+      // Toque longo abre a saída do dia ruim: pular sem culpa e sem
+      // apagar o histórico. Fica escondido de propósito — a ação
+      // principal continua sendo concluir.
+      onLongPress={onSkip ? () => onSkip(task.id) : undefined}
+      delayLongPress={350}
       disabled={task.done || task.pending}
       className="flex-row items-center gap-4"
       style={{
@@ -41,27 +55,32 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: string) => voi
       >
         {task.label}
       </AppText>
-      <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: task.done ? colors.ember : colors.textFaint }}>
-        +{task.xp} xp
-      </AppText>
+      {/* Complementar não vale XP: sem "+0 xp" enganando na linha. */}
+      {task.xp > 0 ? (
+        <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: task.done ? colors.ember : colors.textFaint }}>
+          +{task.xp} xp
+        </AppText>
+      ) : null}
     </Pressable>
   );
 }
 
 type TodayTaskListProps = {
+  title?: string;
   tasks: Task[];
   doneCount: number;
   totalTasks: number;
   onToggle: (id: string) => void;
+  onSkip?: (id: string) => void;
 };
 
-export function TodayTaskList({ tasks, doneCount, totalTasks, onToggle }: TodayTaskListProps) {
+export function TodayTaskList({ title = "Hoje", tasks, doneCount, totalTasks, onToggle, onSkip }: TodayTaskListProps) {
   const { colors } = useTheme();
   return (
     <View className="px-6 pt-[38px]">
       <View className="flex-row items-center justify-between">
         <AppText family="archivo" weight="black" style={{ fontSize: 20, letterSpacing: -0.6, color: colors.text }}>
-          Hoje
+          {title}
         </AppText>
         <AppText family="manrope" weight="bold" style={{ fontSize: 13, color: colors.textMuted }}>
           <AppText family="archivo" weight="black" style={{ fontSize: 16, color: colors.ember }}>
@@ -83,7 +102,7 @@ export function TodayTaskList({ tasks, doneCount, totalTasks, onToggle }: TodayT
 
       <View className="mt-2">
         {tasks.map((task) => (
-          <TaskRow key={task.id} task={task} onToggle={onToggle} />
+          <TaskRow key={task.id} task={task} onToggle={onToggle} onSkip={onSkip} />
         ))}
       </View>
     </View>

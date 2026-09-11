@@ -41,15 +41,3 @@ export function validateUsername(value: string): string | null {
   }
   return null;
 }
-
-/** Sugere um username a partir do nome — o usuário pode trocar. */
-export function suggestUsername(name: string): string {
-  const base = name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "")
-    .slice(0, 22);
-  if (base.length < 3) return "";
-  return base;
-}

@@ -32,12 +32,7 @@ type SessionValue = {
   status: SessionStatus;
   user: MeResponse | null;
   signIn: (input: { email: string; password: string }) => Promise<void>;
-  signUp: (input: {
-    email: string;
-    password: string;
-    name: string;
-    username: string;
-  }) => Promise<void>;
+  signUp: (input: { email: string; password: string; name: string }) => Promise<void>;
   /** Marca o onboarding como concluído (após a identidade ser salva). */
   completeOnboarding: () => void;
   signOut: () => Promise<void>;
@@ -103,8 +98,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await resolveStatusFor(me);
       } catch (error) {
         if (cancelled) return;
-        // Rede fora: mantém a sessão (não desloga por falta de sinal).
-        if (error instanceof ApiError && error.isNetwork) {
+        // Falha passageira (sem sinal, timeout, API reiniciando ou limitando):
+        // mantém a sessão — a próxima requisição tenta de novo sozinha. Só
+        // uma recusa do servidor (401/404 do /me) derruba o login.
+        const transient =
+          error instanceof ApiError && (error.isNetwork || error.status >= 500 || error.status === 429);
+        if (transient) {
           setStatus("ready");
           return;
         }

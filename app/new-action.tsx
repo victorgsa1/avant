@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { router } from "expo-router";
 import { AppText } from "@/components/ui/AppText";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -14,15 +15,16 @@ import type { AreaResponse } from "@/services/http/types";
 const WEEKLY_OPTIONS = [2, 3, 4, 5, 7];
 
 /**
- * Ação rápida do botão `+`: cria uma nova ação (hábito). Sem chatbot e sem
- * IA — a pessoa escreve o que quer fazer e escolhe a frequência.
+ * Ação rápida do botão `+`: cria uma tarefa COMPLEMENTAR numa das áreas da
+ * pessoa. A principal (com prova e XP) vem do plano; esta soma ao dia sem
+ * competir com ela. Sem chatbot e sem IA.
  */
 export default function NewActionScreen() {
   const { colors } = useTheme();
 
   const [title, setTitle] = useState("");
   const [weeklyTarget, setWeeklyTarget] = useState(3);
-  const [areas, setAreas] = useState<AreaResponse[]>([]);
+  const [areas, setAreas] = useState<AreaResponse[] | null>(null);
   const [areaId, setAreaId] = useState<string | undefined>(undefined);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -34,10 +36,13 @@ export default function NewActionScreen() {
       .list()
       .then((list) => {
         if (cancelled) return;
-        setAreas(list);
-        setAreaId(list[0]?.id);
+        const active = list.filter((area) => area.isActive);
+        setAreas(active);
+        setAreaId(active[0]?.id);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setAreas([]);
+      });
     return () => {
       cancelled = true;
     };
@@ -51,6 +56,10 @@ export default function NewActionScreen() {
     }
     if (trimmed.length > 120) {
       setTitleError("Use no máximo 120 caracteres.");
+      return;
+    }
+    if (!areaId) {
+      setFormError("Escolha a área desta complementar.");
       return;
     }
 
@@ -82,8 +91,8 @@ export default function NewActionScreen() {
 
   return (
     <AuthShell
-      title="Nova ação"
-      subtitle="Uma coisa pequena que você consegue repetir. Dá para ajustar depois."
+      title="Nova complementar"
+      subtitle="Algo da sua área que soma ao plano. Complementares não valem XP: a recompensa é da ação principal do dia."
       onBack={() => router.back()}
       footer={
         <View style={{ gap: 14 }}>
@@ -96,7 +105,12 @@ export default function NewActionScreen() {
               {formError}
             </AppText>
           ) : null}
-          <PrimaryButton label="Criar ação" onPress={() => void submit()} loading={saving} />
+          <PrimaryButton
+            label="Criar complementar"
+            onPress={() => void submit()}
+            loading={saving}
+            disabled={areas !== null && areas.length === 0}
+          />
         </View>
       }
     >
@@ -108,7 +122,7 @@ export default function NewActionScreen() {
           setTitleError(null);
         }}
         error={titleError}
-        placeholder="Ex.: Caminhar 20 minutos"
+        placeholder="Ex.: Alongar 10 minutos"
         autoCapitalize="sentences"
       />
 
@@ -145,18 +159,25 @@ export default function NewActionScreen() {
         </View>
       </View>
 
-      {areas.length > 0 ? (
-        <View style={{ gap: 9 }}>
-          <AppText family="manrope" weight="semiBold" style={{ fontSize: 12, color: colors.textMuted }}>
-            Em qual área?
+      <View style={{ gap: 9 }}>
+        <AppText family="manrope" weight="semiBold" style={{ fontSize: 12, color: colors.textMuted }}>
+          Em qual das suas áreas?
+        </AppText>
+        {areas !== null && areas.length === 0 ? (
+          <AppText family="manrope" weight="medium" style={{ fontSize: 13, lineHeight: 19, color: colors.textMuted }}>
+            Você ainda não tem áreas. Termine o plano ou crie uma em Ajustes › Áreas.
           </AppText>
+        ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {areas.map((area) => {
+            {(areas ?? []).map((area) => {
               const active = area.id === areaId;
               return (
                 <Pressable
                   key={area.id}
-                  onPress={() => setAreaId(area.id)}
+                  onPress={() => {
+                    setAreaId(area.id);
+                    setFormError(null);
+                  }}
                   className="rounded-2xl"
                   style={{
                     paddingVertical: 12,
@@ -177,8 +198,8 @@ export default function NewActionScreen() {
               );
             })}
           </ScrollView>
-        </View>
-      ) : null}
+        )}
+      </View>
     </AuthShell>
   );
 }

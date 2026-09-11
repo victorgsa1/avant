@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { progressApi, rankingApi, todayApi } from "@/services/api";
+import { adaptationsApi, progressApi, rankingApi, todayApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type {
+  AdaptationProposal,
   DailyActionResponse,
   ProgressSummaryResponse,
   RankingResponse,
@@ -14,6 +15,8 @@ interface HomePayload {
   today: TodayResponse;
   summary: ProgressSummaryResponse;
   ranking: RankingResponse;
+  /** Propostas do motor adaptativo — geralmente vazio, e tudo bem. */
+  adaptations: AdaptationProposal[];
 }
 
 function initialOf(name: string): string {
@@ -49,12 +52,14 @@ function toTask(action: DailyActionResponse): Task {
 export function useHomeData() {
   const resource = useAsyncResource<HomePayload>(
     useCallback(async () => {
-      const [today, summary, ranking] = await Promise.all([
+      const [today, summary, ranking, adaptations] = await Promise.all([
         todayApi.get(),
         progressApi.summary(),
         rankingApi.get("week"),
+        // O motor é acessório da tela: se ele falhar, o dia continua.
+        adaptationsApi.list().catch(() => [] as AdaptationProposal[]),
       ]);
-      return { today, summary, ranking };
+      return { today, summary, ranking, adaptations };
     }, []),
   );
 
@@ -64,15 +69,16 @@ export function useHomeData() {
   const inFlight = useRef(new Set<string>());
 
   /**
-   * Concluir é otimista: a linha marca na hora e o servidor confirma. Se a
-   * chamada falhar, revertemos — a verdade continua sendo do backend.
+   * Só complementares se concluem com um toque — a principal exige foto e
+   * localização, na tela própria. Concluir é otimista: a linha marca na
+   * hora e o servidor confirma; se falhar, revertemos.
    */
   const toggleTask = useCallback(
     (id: string) => {
       if (!data || inFlight.current.has(id)) return;
 
       const action = data.today.actions.find((item) => item.id === id);
-      if (!action || action.status !== "PLANNED") return;
+      if (!action || action.status !== "PLANNED" || action.role !== "COMPLEMENTARY") return;
 
       inFlight.current.add(id);
       setPendingIds((current) => [...current, id]);
@@ -84,9 +90,7 @@ export function useHomeData() {
           ...current.today,
           progress: { ...current.today.progress, completed: current.today.progress.completed + 1 },
           actions: current.today.actions.map((item) =>
-            item.id === id
-              ? { ...item, status: "COMPLETED", xp: { ...item.xp, awarded: item.xp.possible } }
-              : item,
+            item.id === id ? { ...item, status: "COMPLETED" } : item,
           ),
         },
       }));
@@ -105,7 +109,7 @@ export function useHomeData() {
                 completed: Math.max(0, current.today.progress.completed - 1),
               },
               actions: current.today.actions.map((item) =>
-                item.id === id ? { ...item, status: "PLANNED", xp: { ...item.xp, awarded: 0 } } : item,
+                item.id === id ? { ...item, status: "PLANNED" } : item,
               ),
             },
           }));
@@ -118,15 +122,74 @@ export function useHomeData() {
     [data, mutate, refresh],
   );
 
+  /**
+   * Pular é uma resposta legítima — e o motivo (quando existe) alimenta o
+   * perfil comportamental. Não é otimista: pular sem confirmação do
+   * servidor daria a impressão errada se a chamada falhasse.
+   */
+  const skipTask = useCallback(
+    (id: string, reason?: string) => {
+      if (!data || inFlight.current.has(id)) return;
+
+      const action = data.today.actions.find((item) => item.id === id);
+      if (!action || action.status !== "PLANNED") return;
+
+      inFlight.current.add(id);
+      setPendingIds((current) => [...current, id]);
+      setActionError(null);
+
+      void todayApi
+        .skip(id, reason)
+        .then(() => refresh())
+        .catch((error) => setActionError(userMessage(error)))
+        .finally(() => {
+          inFlight.current.delete(id);
+          setPendingIds((current) => current.filter((pending) => pending !== id));
+        });
+    },
+    [data, refresh],
+  );
+
+  const [adaptationBusyId, setAdaptationBusyId] = useState<string | null>(null);
+
+  /**
+   * Puxar para atualizar roda o motor de adaptação antes de recarregar.
+   *
+   * As regras são baratas (algumas queries) e a IA tem cooldown próprio no
+   * servidor, então isso não vira custo por refresh — mas faz o loop
+   * parecer vivo em vez de esperar o job semanal.
+   */
+  const refreshWithEngine = useCallback(async () => {
+    await adaptationsApi.evaluate().catch(() => undefined);
+    await refresh();
+  }, [refresh]);
+
+  const respondToAdaptation = useCallback(
+    (id: string, response: "apply" | "dismiss") => {
+      if (adaptationBusyId) return;
+      setAdaptationBusyId(id);
+      setActionError(null);
+
+      const request = response === "apply" ? adaptationsApi.apply(id) : adaptationsApi.dismiss(id);
+
+      void request
+        .then(() => refresh())
+        .catch((error) => setActionError(userMessage(error)))
+        .finally(() => setAdaptationBusyId(null));
+    },
+    [adaptationBusyId, refresh],
+  );
+
   const view = useMemo(() => {
     if (!data) return null;
 
     const { today, summary, ranking } = data;
-    const tasks: Task[] = today.actions
-      .filter((action) => action.status !== "SKIPPED")
-      .map((action) => ({ ...toTask(action), pending: pendingIds.includes(action.id) }));
 
-    const nextAction = today.actions.find((action) => action.status === "PLANNED") ?? null;
+    // Uma principal por dia (o servidor garante); o resto é complementar.
+    const primary = today.actions.find((action) => action.role === "PRIMARY") ?? null;
+    const tasks: Task[] = today.actions
+      .filter((action) => action.role === "COMPLEMENTARY" && action.status !== "SKIPPED")
+      .map((action) => ({ ...toTask(action), pending: pendingIds.includes(action.id) }));
 
     const rankingEntries: RankingEntry[] = ranking.rows.slice(0, 3).map((row) => ({
       rank: row.position,
@@ -154,15 +217,20 @@ export function useHomeData() {
       rivalName: ranking.next?.name ?? null,
       gapXP: ranking.next?.xpDelta ?? 0,
       unreadNotifications: today.unreadNotifications,
+      adaptations: data.adaptations,
       insight: today.insight,
       recovery: today.recovery,
-      nextAction: nextAction
+      primaryAction: primary
         ? {
-            id: nextAction.id,
-            title: nextAction.titleSnapshot || nextAction.habit.title,
-            windowLabel: windowLabelOf(nextAction),
-            xp: nextAction.xp.possible,
-            variantTitle: nextAction.variant?.title ?? null,
+            id: primary.id,
+            title: primary.titleSnapshot || primary.habit.title,
+            variantTitle: primary.variant?.title ?? null,
+            windowLabel: windowLabelOf(primary),
+            minutes: primary.minutes,
+            xp: primary.xp.possible,
+            awardedXp: primary.xp.awarded,
+            completedAt: primary.completedAt,
+            status: primary.status,
           }
         : null,
     };
@@ -171,7 +239,11 @@ export function useHomeData() {
   return {
     ...resource,
     view,
+    refreshWithEngine,
     toggleTask,
+    skipTask,
+    respondToAdaptation,
+    adaptationBusyId,
     actionError,
   };
 }

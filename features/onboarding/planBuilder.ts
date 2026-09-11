@@ -1,15 +1,15 @@
 import type { AreaId, StarterPlan } from "./types";
-import type { CreateHabitInput } from "@/services/http/types";
 
 /**
- * Constrói o primeiro compromisso a partir da área escolhida.
+ * Prévia local do primeiro compromisso, a partir da área escolhida.
  *
- * DETERMINÍSTICO de propósito — nenhuma chamada de IA no onboarding. A IA
- * do Avant só entra depois, sobre dados já coletados e validados, para
- * adaptar o plano ao comportamento real da pessoa.
+ * O plano REAL é montado pelo servidor em `POST /v1/onboarding/plan`, onde
+ * a IA estrutura o texto livre em ações e o saneamento determinístico
+ * decide o que dali vira hábito. O que fica aqui é só a prévia mostrada
+ * enquanto a pessoa decide — instantânea, sem rede e sem token.
  *
- * O objetivo aqui é colocar em movimento, não criar o plano perfeito: uma
- * ação pequena, com variante mínima para os dias difíceis.
+ * O blueprint do servidor espelha estes mesmos valores: se um mudar, o
+ * outro precisa mudar junto (`api/src/onboarding/domain/plan-sanitizer.ts`).
  */
 
 export const AREA_LABELS: Record<AreaId, string> = {
@@ -36,14 +36,14 @@ interface AreaBlueprint {
 
 const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
   saude: {
-    habitTitle: "Treinar 30 minutos",
+    habitTitle: "Treino de academia",
     windowLabel: "Depois das 19h",
     startMinute: 19 * 60,
-    weeklyTarget: 3,
-    xpBase: 30,
+    weeklyTarget: 5,
+    xpBase: 40,
     difficulty: 3,
-    standard: "Treino de 30 min",
-    minimum: "10 minutos já contam",
+    standard: "40 min de musculação + 15 min de cardio leve",
+    minimum: "30 min de musculação (treino reduzido)",
   },
   rotina: {
     habitTitle: "Organizar o dia seguinte",
@@ -52,8 +52,8 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     weeklyTarget: 5,
     xpBase: 15,
     difficulty: 2,
-    standard: "Listar as 3 prioridades de amanhã",
-    minimum: "Escolher só a primeira tarefa",
+    standard: "Listar as 3 prioridades de amanhã (10 min)",
+    minimum: "Escolher só a primeira tarefa (3 min)",
   },
   trabalho: {
     habitTitle: "Um bloco de foco sem interrupção",
@@ -73,7 +73,7 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     xpBase: 25,
     difficulty: 3,
     standard: "40 minutos de estudo",
-    minimum: "Revisar por 10 minutos",
+    minimum: "Revisar por 15 minutos",
   },
   financas: {
     habitTitle: "Registrar meus gastos do dia",
@@ -82,8 +82,8 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     weeklyTarget: 6,
     xpBase: 15,
     difficulty: 1,
-    standard: "Anotar todos os gastos",
-    minimum: "Anotar só o maior gasto",
+    standard: "Anotar todos os gastos do dia (10 min)",
+    minimum: "Anotar só o maior gasto (2 min)",
   },
   relacionamentos: {
     habitTitle: "Um contato de verdade com alguém",
@@ -92,8 +92,8 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     weeklyTarget: 3,
     xpBase: 20,
     difficulty: 2,
-    standard: "Uma conversa sem pressa",
-    minimum: "Uma mensagem sincera",
+    standard: "Uma conversa de 20 minutos sem celular",
+    minimum: "Uma mensagem sincera (5 min)",
   },
   outro: {
     habitTitle: "Meu primeiro passo do dia",
@@ -102,7 +102,7 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     weeklyTarget: 4,
     xpBase: 20,
     difficulty: 2,
-    standard: "20 minutos dedicados",
+    standard: "30 minutos dedicados à meta",
     minimum: "5 minutos já mantêm o movimento",
   },
 };
@@ -163,36 +163,4 @@ export function scheduleDays(weeklyTarget: number, today: number): number[] {
   }
 
   return [...days].sort((a, b) => a - b);
-}
-
-/**
- * Payload do primeiro hábito, pronto para `POST /v1/habits`.
- * `todayWeekday` vem da data local devolvida pela API — ver
- * `weekdayFromApiDate`.
- */
-export function buildStarterHabit(
-  area: AreaId | null,
-  todayWeekday: number,
-  areaId?: string,
-): CreateHabitInput {
-  const bp = blueprintFor(area);
-  const days = scheduleDays(bp.weeklyTarget, todayWeekday);
-
-  return {
-    title: bp.habitTitle,
-    areaId,
-    frequency: "WEEKLY",
-    weeklyTarget: bp.weeklyTarget,
-    xpBase: bp.xpBase,
-    difficulty: bp.difficulty,
-    schedules: days.map((dayOfWeek) => ({
-      dayOfWeek,
-      startMinute: bp.startMinute,
-      endMinute: Math.min(bp.startMinute + 120, 23 * 60 + 59),
-    })),
-    variants: [
-      { type: "MINIMUM", title: bp.minimum, xpMultiplier: 0.5 },
-      { type: "STANDARD", title: bp.standard, xpMultiplier: 1 },
-    ],
-  };
 }

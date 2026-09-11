@@ -3,22 +3,6 @@ import Svg, { Path } from "react-native-svg";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
-function ComebackSparkline() {
-  const { colors } = useTheme();
-  return (
-    <Svg
-      width={150}
-      height={82}
-      viewBox="0 0 150 82"
-      fill="none"
-      style={{ position: "absolute", right: -4, bottom: -4, opacity: 0.7 }}
-    >
-      <Path d="M0 82 L34 46 L54 60 L88 20 L116 46 L150 12 L150 82 Z" fill={colors.arcLight} />
-      <Path d="M0 82 L34 46 L54 60 L88 20 L116 46 L150 12" stroke={colors.arcStrong} strokeWidth={1.8} fill="none" />
-    </Svg>
-  );
-}
-
 function ComebackArrow() {
   const { colors } = useTheme();
   return (
@@ -29,55 +13,67 @@ function ComebackArrow() {
 }
 
 type ComebackInsightCardProps = {
-  previousLabel: string;
+  recoveries: number;
   currentLabel: string;
-  recoveriesCount: number;
+  /** Null quando não há mês anterior para comparar. */
+  previousLabel: string | null;
+  improving: boolean;
 };
 
-export function ComebackInsightCard({ previousLabel, currentLabel, recoveriesCount }: ComebackInsightCardProps) {
+/** Retomadas: quão rápido a pessoa volta depois de um dia perdido. Só afirma o que os dados mostram. */
+export function ComebackInsightCard({ recoveries, currentLabel, previousLabel, improving }: ComebackInsightCardProps) {
   const { colors } = useTheme();
+  const hasData = recoveries > 0;
+
+  const title = !hasData ? "Retomadas" : improving ? "Você está voltando mais rápido" : "Você sabe retomar";
+  const body = hasData
+    ? "Tempo médio para voltar depois de um dia que não aconteceu."
+    : "Quando um dia não acontecer e você voltar, o Avant mede quão rápido você retoma.";
+
   return (
-    <View
-      className="overflow-hidden rounded-[26px] px-[22px] py-5"
-      style={{ backgroundColor: colors.emberTint, position: "relative" }}
-    >
-      <ComebackSparkline />
-      <View style={{ position: "relative" }}>
-        <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
-          Você está mudando
-        </AppText>
-        <AppText
-          family="manrope"
-          weight="medium"
-          style={{ fontSize: 13, lineHeight: 18.9, color: colors.emberDeep, marginTop: 6, maxWidth: 236 }}
-        >
-          Você volta mais rápido quando a rotina quebra.
-        </AppText>
+    <View className="overflow-hidden rounded-[26px] px-[22px] py-5" style={{ backgroundColor: colors.emberTint }}>
+      <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
+        {title}
+      </AppText>
+      <AppText
+        family="manrope"
+        weight="medium"
+        style={{ fontSize: 13, lineHeight: 18.9, color: colors.emberDeep, marginTop: 6 }}
+      >
+        {body}
+      </AppText>
 
-        <View className="mt-[18px] flex-row items-baseline" style={{ gap: 12 }}>
-          <AppText family="archivo" weight="black" style={{ fontSize: 28, letterSpacing: -1.2, color: colors.emberWarm }}>
-            {previousLabel}
+      {hasData ? (
+        <>
+          <View className="mt-[18px] flex-row items-baseline" style={{ gap: 12 }}>
+            {previousLabel ? (
+              <>
+                <AppText family="archivo" weight="black" style={{ fontSize: 28, letterSpacing: -1.2, color: colors.emberWarm }}>
+                  {previousLabel}
+                </AppText>
+                <ComebackArrow />
+              </>
+            ) : null}
+            <AppText family="archivo" weight="black" style={{ fontSize: 34, letterSpacing: -1.4, color: colors.ember }}>
+              {currentLabel}
+            </AppText>
+          </View>
+          <AppText family="manrope" weight="semiBold" style={{ fontSize: 11.5, color: colors.emberDeep, marginTop: 4 }}>
+            tempo médio para retomar
           </AppText>
-          <ComebackArrow />
-          <AppText family="archivo" weight="black" style={{ fontSize: 34, letterSpacing: -1.4, color: colors.ember }}>
-            {currentLabel}
-          </AppText>
-        </View>
-        <AppText family="manrope" weight="semiBold" style={{ fontSize: 11.5, color: colors.emberDeep, marginTop: 4 }}>
-          tempo médio para retomar
-        </AppText>
+        </>
+      ) : null}
 
-        <View
-          className="mt-4 flex-row items-center pt-3.5"
-          style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.arcLight }}
-        >
-          <AppText family="archivo" weight="black" style={{ fontSize: 17, color: colors.text }}>
-            {recoveriesCount}
-          </AppText>
-          <AppText family="manrope" weight="semiBold" style={{ fontSize: 12, color: colors.emberDeep }}>
-            retomadas neste mês
-          </AppText>
-        </View>
+      <View
+        className="mt-4 flex-row items-center pt-3.5"
+        style={{ gap: 8, borderTopWidth: 1, borderTopColor: colors.arcLight }}
+      >
+        <AppText family="archivo" weight="black" style={{ fontSize: 17, color: colors.text }}>
+          {recoveries}
+        </AppText>
+        <AppText family="manrope" weight="semiBold" style={{ fontSize: 12, color: colors.emberDeep }}>
+          {recoveries === 1 ? "retomada nos últimos 30 dias" : "retomadas nos últimos 30 dias"}
+        </AppText>
       </View>
     </View>
   );

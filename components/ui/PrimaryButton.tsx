@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { ArrowRightIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";

@@ -1,29 +1,42 @@
 import { http } from "../http/apiClient";
 import type {
+  AdaptationProposal,
   AreaResponse,
   AuthResponse,
   BlockedUserResponse,
+  CompetitionListResponse,
+  CompetitionResponse,
+  CompleteActionResponse,
   ConversationResponse,
+  CreateCompetitionInput,
   CreateHabitInput,
+  CreateReminderInput,
   DailyActionResponse,
   FriendRequestsResponse,
   FriendResponse,
+  GeneratedPlanResponse,
   HabitResponse,
   IdentityResponse,
+  InsightResponse,
   MeResponse,
   MessagePage,
   MessageResponse,
+  NotificationResponse,
   OnboardingQuestion,
   OnboardingStateResponse,
   OnboardingSubmitResponse,
   PreferencesResponse,
   ProgressBucketRow,
   ProgressDailyRow,
+  ProgressOverviewResponse,
   ProgressSummaryResponse,
+  PlanAreaKey,
   PublicUser,
   RankingPeriod,
   RankingResponse,
+  ReminderResponse,
   SendFriendRequestResult,
+  SessionResponse,
   TodayResponse,
   UserSearchResult,
 } from "../http/types";
@@ -34,7 +47,7 @@ import type {
  */
 
 export const authApi = {
-  register: (input: { email: string; password: string; name: string; username: string }) =>
+  register: (input: { email: string; password: string; name: string }) =>
     http.post<AuthResponse>("/auth/register", input, { auth: false }),
 
   login: (input: { email: string; password: string; deviceName?: string }) =>
@@ -45,6 +58,13 @@ export const authApi = {
 
   forgotPassword: (email: string) =>
     http.post<void>("/auth/forgot-password", { email }, { auth: false }),
+
+  changePassword: (input: { currentPassword: string; newPassword: string }) =>
+    http.post<void>("/auth/change-password", input),
+
+  sessions: () => http.get<SessionResponse[]>("/auth/sessions"),
+  revokeSession: (id: string) => http.delete<void>(`/auth/sessions/${id}`),
+  logoutAll: () => http.post<void>("/auth/logout-all"),
 };
 
 export const usersApi = {
@@ -83,8 +103,16 @@ export const habitsApi = {
 export const todayApi = {
   get: () => http.get<TodayResponse>("/today"),
 
-  complete: (actionId: string, input?: { progressValue?: number; perceivedEnergy?: number }) =>
-    http.post<DailyActionResponse>(`/daily-actions/${actionId}/complete`, input ?? {}),
+  /** Complementar: um toque, sem prova e sem XP. */
+  complete: (actionId: string) =>
+    http.post<CompleteActionResponse>(`/daily-actions/${actionId}/complete`, {}),
+
+  /** Principal: foto + localização em multipart; a resposta traz a recompensa. */
+  completeWithProof: (actionId: string, proof: FormData) =>
+    http.post<CompleteActionResponse>(`/daily-actions/${actionId}/complete`, proof, {
+      // Foto em rede móvel: o padrão de 20s abortaria no meio do upload.
+      timeoutMs: 120_000,
+    }),
 
   skip: (actionId: string, reason?: string) =>
     http.post<DailyActionResponse>(`/daily-actions/${actionId}/skip`, { reason }),
@@ -92,6 +120,7 @@ export const todayApi = {
 
 export const progressApi = {
   summary: () => http.get<ProgressSummaryResponse>("/progress/summary"),
+  overview: () => http.get<ProgressOverviewResponse>("/progress/overview"),
   daily: (range?: { from?: string; to?: string }) =>
     http.get<ProgressDailyRow[]>("/progress/daily", { query: range }),
   weekly: (range?: { from?: string; to?: string }) =>
@@ -155,4 +184,59 @@ export const onboardingApi = {
   state: () => http.get<OnboardingStateResponse>("/onboarding/answers"),
   submit: (question: OnboardingQuestion, text: string) =>
     http.post<OnboardingSubmitResponse>("/onboarding/answers", { question, text }),
+
+  /**
+   * Gera o plano inicial no servidor a partir das respostas aceitas.
+   * Idempotente: chamar duas vezes não cria dois planos.
+   */
+  generatePlan: (area: PlanAreaKey) =>
+    http.post<GeneratedPlanResponse>("/onboarding/plan", { area }),
+};
+
+export const competitionsApi = {
+  list: () => http.get<CompetitionListResponse>("/competitions"),
+  get: (id: string) => http.get<CompetitionResponse>(`/competitions/${id}`),
+  create: (input: CreateCompetitionInput) =>
+    http.post<CompetitionResponse>("/competitions", input),
+  invite: (id: string, userIds: string[]) =>
+    http.post<CompetitionResponse>(`/competitions/${id}/participants`, { userIds }),
+  join: (id: string) => http.post<CompetitionResponse>(`/competitions/${id}/join`),
+  decline: (id: string) => http.post<void>(`/competitions/${id}/decline`),
+  leave: (id: string) => http.post<void>(`/competitions/${id}/leave`),
+  cancel: (id: string) => http.delete<void>(`/competitions/${id}`),
+};
+
+export const notificationsApi = {
+  list: () => http.get<NotificationResponse[]>("/notifications"),
+  markRead: (id: string) => http.post<void>(`/notifications/${id}/read`),
+  markOpened: (id: string) => http.post<void>(`/notifications/${id}/open`),
+
+  reminders: () => http.get<ReminderResponse[]>("/notifications/reminders"),
+  createReminder: (input: CreateReminderInput) =>
+    http.post<ReminderResponse>("/notifications/reminders", input),
+  updateReminder: (id: string, input: Partial<CreateReminderInput>) =>
+    http.patch<ReminderResponse>(`/notifications/reminders/${id}`, input),
+  deleteReminder: (id: string) => http.delete<void>(`/notifications/reminders/${id}`),
+};
+
+/**
+ * Motor adaptativo. Note que não existe rota de conversa: o app lê
+ * propostas que o backend gerou observando comportamento, e responde
+ * "adaptar" ou "manter".
+ */
+export const adaptationsApi = {
+  list: () => http.get<AdaptationProposal[]>("/adaptations"),
+  history: () => http.get<(AdaptationProposal & { status: string; appliedAt: string | null })[]>(
+    "/adaptations/history",
+  ),
+  evaluate: () => http.post<AdaptationProposal[]>("/adaptations/evaluate"),
+  apply: (id: string) => http.post<AdaptationProposal>(`/adaptations/${id}/apply`),
+  dismiss: (id: string) => http.post<void>(`/adaptations/${id}/dismiss`),
+};
+
+export const insightsApi = {
+  list: () => http.get<InsightResponse[]>("/insights"),
+  archive: (id: string) => http.post<void>(`/insights/${id}/archive`),
+  weekly: () =>
+    http.post<{ generated: boolean; insight: InsightResponse | null }>("/insights/weekly"),
 };

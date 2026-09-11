@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { AppText } from "@/components/ui/AppText";

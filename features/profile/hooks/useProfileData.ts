@@ -7,7 +7,7 @@ import type {
   PreferencesResponse,
 } from "@/services/http/types";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import type { AreaKey, AvantPreference, ProfileArea } from "../types";
+import type { AreaKey, AvantPreference, ProfileArea, ProfileLink } from "../types";
 
 interface ProfilePayload {
   identity: IdentityResponse | null;
@@ -131,8 +131,18 @@ export function useProfileData() {
       identityStatement: identity?.statement ?? null,
       areas: profileAreas,
       avantPreferences,
-      appPreferences: ["Notificações", "Rotina e horários", "Privacidade", "Aparência"],
-      accountRows: ["Informações pessoais", "E-mail e segurança", "Plano", "Dados e privacidade"],
+      appPreferences: [
+        { label: "Notificações", route: "/settings/notifications" },
+        { label: "Rotina e horários", route: "/settings/routine" },
+        { label: "Seus hábitos", route: "/settings/habits" },
+        { label: "Privacidade", route: "/settings/privacy" },
+        { label: "Aparência", route: "/settings/appearance" },
+      ] satisfies ProfileLink[],
+      accountRows: [
+        { label: "Informações pessoais", route: "/settings/personal" },
+        { label: "E-mail e segurança", route: "/settings/security" },
+        { label: "Dados e privacidade", route: "/settings/data" },
+      ] satisfies ProfileLink[],
     };
   }, [data]);
 

@@ -43,10 +43,16 @@ export function useAsyncResource<T>(
     };
   }, []);
 
-  const load = useCallback(async (mode: "initial" | "refresh") => {
+  /**
+   * `initial`: primeira carga (tela de loading). `refresh`: puxar para
+   * atualizar (indicador no topo). `silent`: volta para a tela — troca os
+   * dados sem indicador. Ligar `refreshing` aqui fazia o RefreshControl puxar
+   * a lista para baixo e soltar a cada troca de aba (o "bounce").
+   */
+  const load = useCallback(async (mode: "initial" | "refresh" | "silent") => {
     const current = ++generation.current;
     if (mode === "refresh") setRefreshing(true);
-    else setLoading(true);
+    else if (mode === "initial") setLoading(true);
 
     try {
       const result = await fetcherRef.current();
@@ -73,7 +79,7 @@ export function useAsyncResource<T>(
       if (!refetchOnFocus) return;
       // Na primeira montagem o efeito acima já carregou; aqui é só o
       // retorno para a aba (ex.: completou algo em outra tela).
-      if (generation.current > 0) void load("refresh");
+      if (generation.current > 0) void load("silent");
     }, [load, refetchOnFocus]),
   );
 

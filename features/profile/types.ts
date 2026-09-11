@@ -13,3 +13,9 @@ export type AvantPreference = {
   value: string;
   help: string;
 };
+
+/** Linha de ajuste do perfil: rótulo + a tela para onde ela leva. */
+export type ProfileLink = {
+  label: string;
+  route: string;
+};

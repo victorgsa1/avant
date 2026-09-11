@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";

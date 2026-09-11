@@ -1,5 +1,13 @@
-import { useCallback, useMemo } from "react";
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  View,
+} from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
@@ -10,6 +18,8 @@ import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { MessageComposer } from "@/features/chat/components/MessageComposer";
 import { useConversation, type PendingMessage } from "@/features/chat/hooks/useConversation";
+import { blocksApi } from "@/services/api";
+import { userMessage } from "@/services/http/ApiError";
 
 export default function ConversationScreen() {
   const { colors } = useTheme();
@@ -28,8 +38,76 @@ export default function ConversationScreen() {
     loadMore,
     send,
     notifyTyping,
+    deleteMessage,
+    leaveConversation,
     reload,
   } = useConversation(conversationId);
+
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const other = useMemo(
+    () => conversation?.participants.find((participant) => participant.id !== user?.id) ?? null,
+    [conversation?.participants, user?.id],
+  );
+
+  /**
+   * Ações da conversa. Em grupo: convidar e sair. Em conversa direta:
+   * bloquear — que no backend derruba a conversa dos dois lados e some
+   * das buscas.
+   */
+  const openActions = () => {
+    if (!conversation) return;
+
+    const options: { text: string; style?: "cancel" | "destructive"; onPress?: () => void }[] = [
+      { text: "Cancelar", style: "cancel" },
+    ];
+
+    if (conversation.type === "GROUP") {
+      options.push({
+        text: "Adicionar pessoas",
+        onPress: () => router.push(`/chat/new-group?conversationId=${conversation.id}`),
+      });
+      options.push({
+        text: "Sair do grupo",
+        style: "destructive",
+        onPress: () => {
+          void leaveConversation()
+            .then(() => router.back())
+            .catch((caught) => setActionError(userMessage(caught)));
+        },
+      });
+    } else if (other) {
+      options.push({
+        text: `Bloquear @${other.username}`,
+        style: "destructive",
+        onPress: () => {
+          void blocksApi
+            .block(other.id)
+            .then(() => router.back())
+            .catch((caught) => setActionError(userMessage(caught)));
+        },
+      });
+    }
+
+    if (Platform.OS === "web") {
+      // Sem Alert no web: a ação principal roda direto.
+      options.find((option) => option.style === "destructive")?.onPress?.();
+      return;
+    }
+    Alert.alert(conversation.title, undefined, options);
+  };
+
+  const confirmDelete = (message: PendingMessage) => {
+    const run = () => void deleteMessage(message.id);
+    if (Platform.OS === "web") {
+      run();
+      return;
+    }
+    Alert.alert("Apagar mensagem?", "Ela some para todo mundo na conversa.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Apagar", style: "destructive", onPress: run },
+    ]);
+  };
 
   const subtitle = useMemo(() => {
     if (!conversation) return null;
@@ -58,9 +136,16 @@ export default function ConversationScreen() {
         conversation?.type === "GROUP" && previous?.sender?.id !== item.sender?.id;
 
       return (
-        <MessageBubble message={item} isMine={!!isMine} showSender={!!showSender} />
+        <MessageBubble
+          message={item}
+          isMine={!!isMine}
+          showSender={!!showSender}
+          onLongPress={confirmDelete}
+        />
       );
     },
+    // `confirmDelete` só depende de `deleteMessage`, que é estável.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [conversation?.type, messages, user?.id],
   );
 
@@ -88,7 +173,35 @@ export default function ConversationScreen() {
         title={conversation?.title ?? "Conversa"}
         subtitle={subtitle}
         onBack={() => router.back()}
+        right={
+          <Pressable
+            onPress={openActions}
+            hitSlop={10}
+            className="items-center justify-center rounded-full"
+            style={{
+              width: 36,
+              height: 36,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.line,
+            }}
+          >
+            <AppText family="archivo" weight="black" style={{ fontSize: 15, color: colors.textMuted }}>
+              ···
+            </AppText>
+          </Pressable>
+        }
       />
+
+      {actionError ? (
+        <AppText
+          family="manrope"
+          weight="medium"
+          style={{ paddingHorizontal: 20, paddingTop: 8, fontSize: 12.5, color: colors.danger }}
+        >
+          {actionError}
+        </AppText>
+      ) : null}
 
       <KeyboardAvoidingView
         className="flex-1"

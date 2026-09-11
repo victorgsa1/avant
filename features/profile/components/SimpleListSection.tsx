@@ -1,12 +1,14 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import type { ProfileLink } from "../types";
 
 type SimpleListSectionProps = {
   title: string;
-  items: string[];
-  onPressItem?: (item: string) => void;
+  items: ProfileLink[];
+  onPressItem?: (item: ProfileLink) => void;
   topPadding?: number;
 };
 
@@ -20,7 +22,7 @@ export function SimpleListSection({ title, items, onPressItem, topPadding = 34 }
       <View style={{ marginTop: 4 }}>
         {items.map((item) => (
           <Pressable
-            key={item}
+            key={item.route}
             onPress={() => onPressItem?.(item)}
             className="flex-row items-center"
             style={{ gap: 12, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.surfaceSunken }}
@@ -30,7 +32,7 @@ export function SimpleListSection({ title, items, onPressItem, topPadding = 34 }
               weight="semiBold"
               style={{ flex: 1, fontSize: 14.5, letterSpacing: -0.2, color: colors.text }}
             >
-              {item}
+              {item.label}
             </AppText>
             <ChevronRightIcon width={13} color={colors.textFaint} />
           </Pressable>

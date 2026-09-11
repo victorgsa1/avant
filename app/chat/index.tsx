@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
+import { PlusIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { useConversations } from "@/features/chat/hooks/useConversations";
@@ -119,7 +121,20 @@ export default function ConversationsScreen() {
 
   return (
     <Screen>
-      <ChatHeader title="Conversas" onBack={() => router.back()} />
+      <ChatHeader
+        title="Conversas"
+        onBack={() => router.back()}
+        right={
+          <Pressable
+            onPress={() => router.push("/chat/new-group")}
+            hitSlop={10}
+            className="items-center justify-center rounded-full"
+            style={{ width: 36, height: 36, backgroundColor: colors.ember }}
+          >
+            <PlusIcon size={16} color={colors.onEmber} />
+          </Pressable>
+        }
+      />
 
       {loading && !data ? (
         <ScreenLoading />

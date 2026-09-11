@@ -55,6 +55,30 @@ export function ArrowRightIcon({ width = 18, color: colorProp }: IconProps & { w
   );
 }
 
+/** Sair da conta: porta aberta com uma seta saindo. */
+export function LogoutIcon({ size = 18, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M8 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H8"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M9 10h8M14 6.8 17.2 10 14 13.2"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function TrendUpIcon({ size = 10, color: colorProp }: IconProps) {
   const { colors } = useTheme();
   const color = colorProp ?? colors.emberInk;

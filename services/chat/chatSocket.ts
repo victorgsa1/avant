@@ -30,23 +30,17 @@ type Ack<T> = { ok: true; data: T } | { ok: false; error: { code: string; messag
 let socket: Socket | null = null;
 
 function ensureSocket(): Socket | null {
-  const tokens = authTokens.current;
-  if (!tokens) return null;
-
-  if (socket) {
-    // Token renovado desde a última conexão: reconecta com o novo.
-    const currentAuth = socket.auth as { token?: string } | undefined;
-    if (currentAuth?.token !== tokens.accessToken) {
-      socket.auth = { token: tokens.accessToken };
-      if (socket.connected) socket.disconnect();
-      socket.connect();
-    }
-    return socket;
-  }
+  if (!authTokens.current) return null;
+  if (socket) return socket;
 
   socket = io(config.chatUrl, {
     transports: ["websocket"],
-    auth: { token: tokens.accessToken },
+    // Função, não objeto: o socket.io chama a cada (re)conexão, então o
+    // handshake sempre leva o access token mais novo — inclusive no boot
+    // (só o refresh vem do disco) e depois de o access expirar.
+    auth: (cb) => {
+      void authTokens.accessToken().then((token) => cb({ token: token ?? "" }));
+    },
     autoConnect: true,
     reconnection: true,
     reconnectionDelay: 1_000,

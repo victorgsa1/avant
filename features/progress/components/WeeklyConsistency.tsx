@@ -13,6 +13,9 @@ function dayDotStyle(state: WeekDay["state"], colors: ThemeColors) {
       return { backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ember };
     case "miss":
       return { backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.textMuted };
+    case "rest":
+      // Dia sem principal no plano: descanso, visualmente neutro.
+      return { backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.line, borderStyle: "dashed" as const };
     default:
       return { backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.bg };
   }
@@ -54,7 +57,7 @@ export function WeeklyConsistency({ week, doneCount, totalCount }: WeeklyConsist
           Consistência semanal
         </AppText>
         <AppText family="manrope" weight="bold" style={{ fontSize: 12.5, color: colors.textMuted }}>
-          {doneCount} de {totalCount} ações
+          {doneCount} de {totalCount} principais
         </AppText>
       </View>
       <View className="mt-4 flex-row justify-between">

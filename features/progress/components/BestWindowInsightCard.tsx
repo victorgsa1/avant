@@ -15,10 +15,11 @@ function WindowWaveChart() {
 }
 
 type BestWindowInsightCardProps = {
-  windowLabel: string;
+  /** Null enquanto não há conclusões suficientes para afirmar um padrão. */
+  bestWindow: { title: string; phrase: string; share: number } | null;
 };
 
-export function BestWindowInsightCard({ windowLabel }: BestWindowInsightCardProps) {
+export function BestWindowInsightCard({ bestWindow }: BestWindowInsightCardProps) {
   const { colors } = useTheme();
   return (
     <View
@@ -27,21 +28,23 @@ export function BestWindowInsightCard({ windowLabel }: BestWindowInsightCardProp
     >
       <View className="flex-1">
         <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
-          O Avant aprendeu
+          {bestWindow ? "O Avant aprendeu" : "O Avant está aprendendo"}
         </AppText>
         <AppText
           family="manrope"
           weight="medium"
           style={{ fontSize: 13, lineHeight: 18.9, color: colors.textMuted, marginTop: 6 }}
         >
-          Sua janela mais consistente é pela manhã.
+          {bestWindow
+            ? `${bestWindow.share}% das suas conclusões acontecem ${bestWindow.phrase}.`
+            : "Depois de algumas conclusões, aparece aqui o horário em que você mais cumpre."}
         </AppText>
         <AppText
           family="archivo"
           weight="black"
           style={{ fontSize: 19, letterSpacing: -0.6, color: colors.ember, marginTop: 12 }}
         >
-          {windowLabel}
+          {bestWindow ? bestWindow.title : "—"}
         </AppText>
       </View>
       <WindowWaveChart />

@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import {
   BarsIcon,

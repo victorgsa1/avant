@@ -60,6 +60,15 @@ export interface PreferencesResponse {
   preferredEndMinute: number | null;
   recoveryMode: RecoveryMode;
   notificationsEnabled: boolean;
+  /** Intervenções decididas pelo motor comportamental. */
+  behavioralNotificationsEnabled: boolean;
+  socialNotificationsEnabled: boolean;
+  quietHoursEnabled: boolean;
+  /** Minutos desde 00:00 no fuso do usuário. 22:00 = 1320. */
+  quietHoursStart: number;
+  quietHoursEnd: number;
+  /** Teto diário de intervenções. Null = usa o padrão do servidor. */
+  behavioralDailyLimit: number | null;
   reminderLeadMinutes: number;
   timezone: string;
   weekStartsOn: number;
@@ -132,11 +141,18 @@ export interface CreateHabitInput {
 
 export type DailyActionStatus = "PLANNED" | "COMPLETED" | "SKIPPED" | "MISSED";
 
+export type HabitRole = "PRIMARY" | "COMPLEMENTARY";
+
 export interface DailyActionResponse {
   id: string;
+  /** PRIMARY: compromisso do dia (prova + XP). COMPLEMENTARY: sem prova e sem XP. */
+  role: HabitRole;
   habit: { id: string; title: string };
   variant: { type: ActionVariantType; title: string } | null;
   titleSnapshot: string;
+  /** Duração da versão do dia, quando medida em minutos. */
+  minutes: number | null;
+  proof: { capturedAt: string | null } | null;
   time: {
     plannedAt: string | null;
     windowStart: string | null;
@@ -150,8 +166,23 @@ export interface DailyActionResponse {
   xp: { possible: number; awarded: number };
 }
 
+/** O que a conclusão da principal rendeu. Null quando nada foi concedido agora. */
+export interface CompletionReward {
+  xp: number;
+  leveledUp: boolean;
+  xpTotal: number;
+  level: LevelProgress;
+  streak: number;
+}
+
+export interface CompleteActionResponse extends DailyActionResponse {
+  reward: CompletionReward | null;
+}
+
 export interface TodayResponse {
   date: string;
+  /** "Quem eu quero me tornar", do plano. */
+  identity: string | null;
   progress: {
     planned: number;
     completed: number;
@@ -203,6 +234,32 @@ export interface ProgressBucketRow {
   completed: number;
   consistencyScore: number;
   xpEarned: number;
+}
+
+export type WeekDayStateResponse = "done" | "miss" | "today" | "next" | "rest";
+export type ExecutionPeriod = "MORNING" | "AFTERNOON" | "EVENING";
+
+/** `GET /v1/progress/overview` — a tela de Progresso inteira, calculada no servidor. */
+export interface ProgressOverviewResponse {
+  identity: string | null;
+  streak: { current: number; best: number };
+  consistency: {
+    pct: number;
+    /** Null sem mês anterior para comparar. */
+    deltaPct: number | null;
+    /** Consistência acumulada dia a dia nos últimos 30 dias (0..100). */
+    series: number[];
+    startDate: string;
+    endDate: string;
+  };
+  week: { days: { date: string; state: WeekDayStateResponse }[]; done: number; total: number };
+  bestWindow: { period: ExecutionPeriod; share: number; sample: number } | null;
+  comeback: {
+    recoveries: number;
+    avgDaysToReturn: number | null;
+    previousAvgDaysToReturn: number | null;
+  };
+  areas: { id: string; name: string; pct: number | null }[];
 }
 
 // ----------------------------------------------------------------------
@@ -363,4 +420,208 @@ export interface OnboardingSubmitResponse {
 export interface OnboardingStateResponse {
   answers: OnboardingAnswerView[];
   state: Record<string, { invalidAttempts: number; cooldownSeconds: number }>;
+}
+
+// ----------------------------------------------------------------------
+// Competições
+// ----------------------------------------------------------------------
+
+export type CompetitionStatus = "DRAFT" | "UPCOMING" | "ACTIVE" | "FINISHED" | "CANCELLED";
+export type CompetitionParticipantStatus = "INVITED" | "ACTIVE" | "DECLINED" | "LEFT";
+
+export interface CompetitionStanding {
+  position: number;
+  userId: string;
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+  /** Consistência média no período (0..100). */
+  score: number;
+  plannedCount: number;
+  completedCount: number;
+  daysScored: number;
+  status: CompetitionParticipantStatus;
+  isCurrentUser: boolean;
+}
+
+export interface CompetitionResponse {
+  id: string;
+  title: string;
+  description: string | null;
+  metric: "CONSISTENCY";
+  status: CompetitionStatus;
+  startDate: string;
+  endDate: string;
+  startAt: string;
+  endAt: string;
+  daysTotal: number;
+  daysElapsed: number;
+  daysRemaining: number;
+  creator: { id: string; name: string; username: string };
+  isCreator: boolean;
+  myStatus: CompetitionParticipantStatus | null;
+  myPosition: number | null;
+  myScore: number;
+  participantCount: number;
+  maxParticipants: number;
+  standings: CompetitionStanding[];
+  pendingInvites: { userId: string; name: string; username: string }[];
+}
+
+export interface CompetitionListResponse {
+  invites: CompetitionResponse[];
+  ongoing: CompetitionResponse[];
+  upcoming: CompetitionResponse[];
+  finished: CompetitionResponse[];
+}
+
+export interface CreateCompetitionInput {
+  title: string;
+  description?: string;
+  startDate?: string;
+  durationDays: 7 | 14 | 30;
+  maxParticipants?: number;
+  inviteeIds?: string[];
+}
+
+// ----------------------------------------------------------------------
+// Notificações e lembretes
+// ----------------------------------------------------------------------
+
+export type NotificationType =
+  | "GENERAL"
+  | "REMINDER"
+  | "INSIGHT"
+  | "RECOVERY"
+  | "FRIEND_REQUEST"
+  | "FRIEND_ACCEPTED"
+  | "COMPETITION_INVITE"
+  | "COMPETITION_UPDATE"
+  | "BEHAVIORAL_REMINDER"
+  | "RESCUE"
+  | "COMEBACK"
+  | "ACHIEVEMENT"
+  | "STREAK"
+  | "WEEKLY_PROGRESS"
+  | "SOCIAL"
+  | "SYSTEM";
+
+export interface NotificationResponse {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data: { route?: string; habitId?: string; conversationId?: string } | null;
+  readAt: string | null;
+  openedAt: string | null;
+  createdAt: string;
+}
+
+export interface ReminderResponse {
+  id: string;
+  title: string;
+  description: string | null;
+  /** Minuto do dia (0..1439) no fuso do lembrete. 19:00 = 1140. */
+  minuteOfDay: number;
+  timezone: string;
+  /** 0=domingo … 6=sábado. */
+  daysOfWeek: number[];
+  isEnabled: boolean;
+  habitId: string | null;
+  lastSentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateReminderInput {
+  title: string;
+  description?: string;
+  minuteOfDay: number;
+  timezone?: string;
+  daysOfWeek?: number[];
+  isEnabled?: boolean;
+  habitId?: string;
+}
+
+// ----------------------------------------------------------------------
+// Motor adaptativo
+// ----------------------------------------------------------------------
+
+export type AdaptationType =
+  | "CHANGE_TIME"
+  | "REDUCE_ACTION"
+  | "INCREASE_ACTION"
+  | "CHANGE_VARIANT"
+  | "RECOVERY_PLAN"
+  | "CHANGE_REMINDER"
+  | "CHANGE_FREQUENCY";
+
+export interface AdaptationProposal {
+  id: string;
+  type: AdaptationType;
+  strategy: string | null;
+  title: string;
+  message: string;
+  habitId: string | null;
+  habitTitle: string | null;
+  /** RULE = regra determinística; AI = hipótese do modelo já validada. */
+  source: "RULE" | "MODEL" | "AI";
+  confidence: number | null;
+  evidence: Record<string, unknown> | null;
+  createdAt: string;
+  expiresAt: string | null;
+  applyLabel: string;
+}
+
+export interface InsightResponse {
+  id: string;
+  type: string;
+  source: "RULE" | "MODEL" | "AI";
+  title: string;
+  body: string;
+  confidence: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  createdAt: string;
+}
+
+// ----------------------------------------------------------------------
+// Segurança da conta
+// ----------------------------------------------------------------------
+
+export interface SessionResponse {
+  id: string;
+  deviceName: string;
+  lastUsedAt: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+// ----------------------------------------------------------------------
+// Plano inicial (onboarding)
+// ----------------------------------------------------------------------
+
+export type PlanAreaKey =
+  | "saude"
+  | "rotina"
+  | "trabalho"
+  | "estudos"
+  | "financas"
+  | "relacionamentos"
+  | "outro";
+
+export interface GeneratedPlanResponse {
+  identity: string;
+  /** true quando a IA estruturou; false quando veio do plano determinístico. */
+  fromAi: boolean;
+  alreadyExisted: boolean;
+  habits: {
+    id: string;
+    title: string;
+    areaName: string;
+    weeklyTarget: number;
+    startMinute: number;
+    minimumVersion: string;
+    standardVersion: string;
+  }[];
 }

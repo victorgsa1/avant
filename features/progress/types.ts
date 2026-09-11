@@ -1,4 +1,5 @@
-export type WeekDayState = "done" | "today" | "miss" | "next";
+/** `rest`: dia sem ação principal no plano — descanso, não falha. */
+export type WeekDayState = "done" | "today" | "miss" | "next" | "rest";
 
 export type WeekDay = {
   label: string;
@@ -7,5 +8,8 @@ export type WeekDay = {
 
 export type Area = {
   name: string;
-  pct: number;
+  /** Null quando a área ainda não tem ação com veredito no mês. */
+  pct: number | null;
 };
+
+export type Trend = "up" | "down" | "flat" | "none";

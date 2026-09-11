@@ -1,14 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { areasApi, habitsApi, onboardingApi, todayApi, usersApi } from "@/services/api";
+import { onboardingApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
-import type { OnboardingQuestion } from "@/services/http/types";
+import type { GeneratedPlanResponse, OnboardingQuestion } from "@/services/http/types";
 import type { AreaId, OnboardingAnswers, OnboardingStep, StarterPlan } from "../types";
-import {
-  AREA_LABELS,
-  buildStarterHabit,
-  buildStarterPlan,
-  weekdayFromApiDate,
-} from "../planBuilder";
+import { buildStarterPlan } from "../planBuilder";
 import { localValidateOnboardingAnswer, messageForCode } from "../validation";
 
 const STEPS: OnboardingStep[] = ["identity", "clarify", "motivation", "barriers", "plan", "start"];
@@ -108,33 +103,30 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     [advance, answers],
   );
 
-  /** Grava identidade, área e primeiro hábito. Só roda ao confirmar o plano. */
+  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlanResponse | null>(null);
+
+  /**
+   * Confirmar o plano manda as respostas para o servidor montar tudo:
+   * identidade, áreas e hábitos com versão mínima.
+   *
+   * O trabalho é do backend de propósito. É lá que a IA estrutura o texto
+   * livre em ações concretas — e é lá que o saneamento determinístico
+   * decide o que dessa estrutura vira hábito de verdade. Se a IA não
+   * responder, o mesmo endpoint entrega o plano determinístico, então o
+   * onboarding nunca trava por causa dela.
+   */
   const commitPlan = useCallback(async () => {
     setSubmitting(true);
     try {
-      await usersApi.putIdentity({
-        statement: answers.identity.trim(),
-        whyItMatters: answers.motivation.trim() || undefined,
-      });
-
-      const area = await areasApi.create({
-        name: AREA_LABELS[answers.area ?? "outro"],
-        whyImportant: answers.motivation.trim() || undefined,
-      });
-
-      // O "hoje" que vale é o do servidor (timezone das preferências), não
-      // o do aparelho — senão o primeiro movimento pode cair fora do dia.
-      const today = await todayApi.get();
-      await habitsApi.create(
-        buildStarterHabit(answers.area, weekdayFromApiDate(today.date), area.id),
-      );
+      const plan = await onboardingApi.generatePlan(answers.area ?? "outro");
+      setGeneratedPlan(plan);
       advance();
     } catch (requestError) {
       setError(userMessage(requestError));
     } finally {
       setSubmitting(false);
     }
-  }, [advance, answers]);
+  }, [advance, answers.area]);
 
   const goNext = useCallback(() => {
     if (submitting) return;
@@ -176,6 +168,8 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     setAnswers((current) => ({ ...current, area }));
   }, []);
 
+  // Prévia local enquanto a pessoa decide: instantânea e sem custo. O
+  // plano que vale é o que o servidor devolve ao confirmar.
   const plan: StarterPlan = useMemo(
     () => buildStarterPlan(answers.area, answers.identity),
     [answers.area, answers.identity],
@@ -187,6 +181,7 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       progress: PROGRESS[step],
       answers,
       plan,
+      generatedPlan,
       error,
       submitting,
       setAnswer,
@@ -194,6 +189,6 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       goNext,
       goBack,
     }),
-    [answers, error, goBack, goNext, plan, selectArea, setAnswer, step, submitting],
+    [answers, error, generatedPlan, goBack, goNext, plan, selectArea, setAnswer, step, submitting],
   );
 }

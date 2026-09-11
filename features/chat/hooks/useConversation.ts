@@ -199,6 +199,29 @@ export function useConversation(conversationId: string) {
     chatSocket.setTyping(conversationId, true);
   }, [conversationId]);
 
+  /**
+   * Apagar é "apagar para todos" — o servidor deixa uma lápide no lugar
+   * da mensagem, então a remoção some para os dois lados sem abrir buraco
+   * na paginação.
+   */
+  const deleteMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        await chatApi.deleteMessage(conversationId, messageId);
+        if (!mounted.current) return;
+        setMessages((current) => current.filter((message) => message.id !== messageId));
+      } catch (caught) {
+        if (mounted.current) setError(userMessage(caught));
+      }
+    },
+    [conversationId],
+  );
+
+  /** Sair do grupo. Conversa direta não tem "sair" — tem bloquear. */
+  const leaveConversation = useCallback(async () => {
+    await chatApi.leave(conversationId);
+  }, [conversationId]);
+
   return {
     conversation,
     messages,
@@ -210,6 +233,8 @@ export function useConversation(conversationId: string) {
     loadMore,
     send,
     notifyTyping,
+    deleteMessage,
+    leaveConversation,
     reload: loadInitial,
   };
 }

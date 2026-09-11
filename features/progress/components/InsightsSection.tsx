@@ -3,26 +3,25 @@ import { BestWindowInsightCard } from "./BestWindowInsightCard";
 import { ComebackInsightCard } from "./ComebackInsightCard";
 
 type InsightsSectionProps = {
-  comebackPreviousLabel: string;
-  comebackCurrentLabel: string;
-  comebackRecoveries: number;
-  bestWindowLabel: string;
+  comeback: {
+    recoveries: number;
+    currentLabel: string;
+    previousLabel: string | null;
+    improving: boolean;
+  };
+  bestWindow: { title: string; phrase: string; share: number } | null;
 };
 
-export function InsightsSection({
-  comebackPreviousLabel,
-  comebackCurrentLabel,
-  comebackRecoveries,
-  bestWindowLabel,
-}: InsightsSectionProps) {
+export function InsightsSection({ comeback, bestWindow }: InsightsSectionProps) {
   return (
     <View className="px-5 pt-[34px]" style={{ gap: 12 }}>
       <ComebackInsightCard
-        previousLabel={comebackPreviousLabel}
-        currentLabel={comebackCurrentLabel}
-        recoveriesCount={comebackRecoveries}
+        recoveries={comeback.recoveries}
+        currentLabel={comeback.currentLabel}
+        previousLabel={comeback.previousLabel}
+        improving={comeback.improving}
       />
-      <BestWindowInsightCard windowLabel={bestWindowLabel} />
+      <BestWindowInsightCard bestWindow={bestWindow} />
     </View>
   );
 }

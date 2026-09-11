@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import type { PendingMessage } from "../hooks/useConversation";
@@ -13,13 +14,15 @@ type MessageBubbleProps = {
   isMine: boolean;
   /** Em grupo, mostramos quem falou quando o autor muda. */
   showSender: boolean;
+  /** Toque longo na própria mensagem — só existe para quem a escreveu. */
+  onLongPress?: (message: PendingMessage) => void;
 };
 
 /**
  * Bolha de mensagem. O corpo é SEMPRE renderizado como texto puro — nunca
  * HTML/Markdown: a mensagem é conteúdo hostil por definição.
  */
-export function MessageBubble({ message, isMine, showSender }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, showSender, onLongPress }: MessageBubbleProps) {
   const { colors } = useTheme();
 
   if (message.type === "SYSTEM") {
@@ -49,7 +52,11 @@ export function MessageBubble({ message, isMine, showSender }: MessageBubbleProp
         </AppText>
       ) : null}
 
-      <View
+      <Pressable
+        onLongPress={
+          onLongPress && isMine && !message.pending ? () => onLongPress(message) : undefined
+        }
+        delayLongPress={350}
         style={{
           maxWidth: "82%",
           paddingVertical: 10,
@@ -80,7 +87,7 @@ export function MessageBubble({ message, isMine, showSender }: MessageBubbleProp
             {message.failed ? "não enviada" : timeOf(message.createdAt)}
           </AppText>
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }

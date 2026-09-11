@@ -8,6 +8,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 
 import { AppText } from "@/components/ui/AppText";
 import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavRankingIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { tapHaptic } from "@/services/native/haptics";
 
 const TABS: { href: Href; icon: typeof NavHojeIcon; label: string }[] = [
   { href: "/", icon: NavHojeIcon, label: "Hoje" },
@@ -40,6 +41,7 @@ export function GlassTabBar({ activeIndex }: { activeIndex: number }) {
 
   const navigateToIndex = (index: number) => {
     const clamped = Math.min(TABS.length - 1, Math.max(0, index));
+    tapHaptic("selection");
     router.navigate(TABS[clamped].href);
   };
 

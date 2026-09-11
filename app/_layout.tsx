@@ -72,8 +72,27 @@ function RootNavigator() {
         <Stack.Protected guard={status === "ready"}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="new-action" options={{ presentation: "modal" }} />
+          <Stack.Screen name="new-competition" options={{ presentation: "modal" }} />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="complete-action/[id]" />
+          {/* Sem voltar por gesto: a recompensa fecha o ciclo e leva para Hoje. */}
+          <Stack.Screen name="action-reward" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="competition/[id]" />
           <Stack.Screen name="chat/index" />
           <Stack.Screen name="chat/[id]" />
+          <Stack.Screen name="chat/new-group" options={{ presentation: "modal" }} />
+
+          {/* Ajustes: cada linha do perfil abre a própria tela. */}
+          <Stack.Screen name="settings/personal" />
+          <Stack.Screen name="settings/security" />
+          <Stack.Screen name="settings/notifications" />
+          <Stack.Screen name="settings/routine" />
+          <Stack.Screen name="settings/privacy" />
+          <Stack.Screen name="settings/appearance" />
+          <Stack.Screen name="settings/data" />
+          <Stack.Screen name="settings/areas" />
+          <Stack.Screen name="settings/identity" />
+          <Stack.Screen name="settings/habits" />
         </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>

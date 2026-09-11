@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Pressable } from "@/components/ui/Pressable";
 import { router } from "expo-router";
 import { AppText } from "@/components/ui/AppText";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -7,49 +8,31 @@ import { TextField } from "@/components/ui/TextField";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AuthShell } from "@/features/auth/components/AuthShell";
 import { useSession } from "@/features/auth/SessionProvider";
-import {
-  suggestUsername,
-  validateEmail,
-  validateName,
-  validatePassword,
-  validateUsername,
-} from "@/features/auth/validation";
+import { validateEmail, validateName, validatePassword } from "@/features/auth/validation";
 import { ApiError, userMessage } from "@/services/http/ApiError";
 
 type FieldErrors = {
   name?: string | null;
-  username?: string | null;
   email?: string | null;
   password?: string | null;
 };
 
+// O @usuário não é pedido aqui: o backend gera um provisório a partir do
+// nome e a pessoa escolhe o definitivo na primeira visita ao social.
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const { signUp } = useSession();
 
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [usernameTouched, setUsernameTouched] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Enquanto o usuário não editar o campo, o username acompanha o nome.
-  const onChangeName = useCallback(
-    (value: string) => {
-      setName(value);
-      setErrors((e) => ({ ...e, name: null }));
-      if (!usernameTouched) setUsername(suggestUsername(value));
-    },
-    [usernameTouched],
-  );
-
   const onSubmit = useCallback(async () => {
     const nextErrors: FieldErrors = {
       name: validateName(name),
-      username: validateUsername(username),
       email: validateEmail(email),
       password: validatePassword(password),
     };
@@ -61,7 +44,6 @@ export default function SignUpScreen() {
     try {
       await signUp({
         name: name.trim(),
-        username: username.trim().toLowerCase(),
         email: email.trim(),
         password,
       });
@@ -69,15 +51,13 @@ export default function SignUpScreen() {
       // Conflitos conhecidos viram erro no campo certo, não um alerta genérico.
       if (error instanceof ApiError && error.code === "EMAIL_ALREADY_IN_USE") {
         setErrors((e) => ({ ...e, email: "Este e-mail já está em uso." }));
-      } else if (error instanceof ApiError && error.code === "USERNAME_ALREADY_IN_USE") {
-        setErrors((e) => ({ ...e, username: "Este nome de usuário já está em uso." }));
       } else {
         setFormError(userMessage(error));
       }
     } finally {
       setSubmitting(false);
     }
-  }, [email, name, password, signUp, username]);
+  }, [email, name, password, signUp]);
 
   return (
     <AuthShell
@@ -116,27 +96,15 @@ export default function SignUpScreen() {
       <TextField
         label="Seu nome"
         value={name}
-        onChangeText={onChangeName}
+        onChangeText={(value) => {
+          setName(value);
+          setErrors((e) => ({ ...e, name: null }));
+        }}
         error={errors.name}
         placeholder="Como quer ser chamado"
         autoCapitalize="words"
         autoComplete="name"
         textContentType="name"
-      />
-
-      <TextField
-        label="Nome de usuário"
-        value={username}
-        onChangeText={(value) => {
-          setUsernameTouched(true);
-          setUsername(value);
-          setErrors((e) => ({ ...e, username: null }));
-        }}
-        error={errors.username}
-        hint="É assim que seus amigos vão te encontrar."
-        placeholder="seunome"
-        autoCapitalize="none"
-        autoCorrect={false}
       />
 
       <TextField
