@@ -28,8 +28,7 @@ export function SimpleTabBar({ activeIndex }: { activeIndex: number }) {
         backgroundColor: colors.inverse,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-around",
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
       }}
     >
       {TABS.map((tab, index) => {
@@ -39,9 +38,15 @@ export function SimpleTabBar({ activeIndex }: { activeIndex: number }) {
             key={tab.label}
             haptic="selection"
             onPress={() => router.navigate(tab.href)}
-            className="items-center justify-center rounded-[22px]"
             style={[
-              { gap: 4, paddingVertical: 7, paddingHorizontal: 15 },
+              {
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                paddingVertical: 7,
+                borderRadius: 22,
+              },
               isActive ? { backgroundColor: `${colors.ember}29` } : null,
             ]}
           >
@@ -49,6 +54,7 @@ export function SimpleTabBar({ activeIndex }: { activeIndex: number }) {
             <AppText
               family="manrope"
               weight={isActive ? "extraBold" : "semiBold"}
+              numberOfLines={1}
               style={{ fontSize: 10, color: isActive ? colors.ember : colors.onInverseMuted }}
             >
               {tab.label}

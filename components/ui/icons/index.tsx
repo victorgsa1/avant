@@ -541,3 +541,118 @@ export function PlusThinIcon({ size = 15, color: colorProp }: IconProps) {
     </Svg>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Pacote de assets do produto (grade 24×24, traço 1.8). Ficam inline, e não
+// como arquivos .svg, porque um SVG carregado como imagem não herda
+// `currentColor` — só assim a cor acompanha o tema.
+// ---------------------------------------------------------------------------
+
+export function CameraIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.onEmber;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8 5 9.5 2.8h5L16 5h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={13} r={4.3} stroke={color} strokeWidth={1.8} />
+    </Svg>
+  );
+}
+
+export function AdaptiveIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.ember;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 20v-5a6 6 0 0 1 6-6h3a6 6 0 0 0 6-6M13 3h6v6"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function SneakerIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 14c4 0 6-3 7-7l3 2 3-2 3 3v5h1a2 2 0 0 1 2 2v2H5a3 3 0 0 1-3-3v-2Z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 16h17M10 11l2 1M8.5 13l2 1M16 8v4"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function StretchIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={10.5} cy={4.5} r={2} stroke={color} strokeWidth={1.8} />
+      <Path
+        d="m10 9 4 3 4-5V2M10 9l-4 5v4M14 12l-3 5-5 5M11 17l6 2v3"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function OpenBookIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 5C9 2 5 2 2 3v17c4-1 7 0 10 2 3-2 6-3 10-2V3c-3-1-7-1-10 2ZM12 5v17"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function MinusIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 12h12" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function PlusLineIcon({ size = 20, color: colorProp }: IconProps) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 4v16M4 12h16" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}

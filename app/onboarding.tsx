@@ -11,7 +11,8 @@ import { StepHeader } from "@/features/onboarding/components/StepHeader";
 import { useOnboardingFlow } from "@/features/onboarding/hooks/useOnboardingFlow";
 import type { AreaId } from "@/features/onboarding/types";
 import { StatusBar } from "expo-status-bar";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 const AREA_LABELS: Record<AreaId, string> = {
   saude: "saúde",
@@ -36,6 +37,8 @@ export default function OnboardingScreen() {
     plan,
     planLoading,
     planIsFallback,
+    planValues,
+    setPlanEdit,
     generatedPlan,
     error,
     submitting,
@@ -63,10 +66,7 @@ export default function OnboardingScreen() {
   return (
     <OnboardingCanvas>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <StepHeader
           filled={progress.filled}
           partial={progress.partial}
@@ -128,7 +128,8 @@ export default function OnboardingScreen() {
                 error={error}
                 loading={submitting}
                 onConfirm={goNext}
-                onAdjust={goBack}
+                values={planValues}
+                onChange={setPlanEdit}
               />
             ) : null}
           </View>

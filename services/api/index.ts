@@ -194,9 +194,16 @@ export const onboardingApi = {
   previewPlan: (area: PlanAreaKey) =>
     http.post<PlanPreviewResponse>("/onboarding/plan/preview", { area }),
 
-  /** Grava o plano (a mesma prévia, se ela ainda vale para as respostas). */
-  generatePlan: (area: PlanAreaKey) =>
-    http.post<GeneratedPlanResponse>("/onboarding/plan", { area }),
+  /**
+   * Grava o plano (a mesma prévia, se ela ainda vale para as respostas).
+   * `overrides` leva as correções feitas na própria tela de confirmação —
+   * sem elas, ajustar exigiria reescrever a história até a IA mudar de ideia.
+   */
+  generatePlan: (
+    area: PlanAreaKey,
+    overrides?: { title?: string; weeklyTarget?: number; startMinute?: number },
+  ) =>
+    http.post<GeneratedPlanResponse>("/onboarding/plan", { area, overrides }),
 
   /** DEV: apaga respostas, identidade e plano ativo para refazer o onboarding. */
   reset: () => http.delete<void>("/onboarding"),

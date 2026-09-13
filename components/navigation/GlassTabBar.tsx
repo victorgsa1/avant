@@ -1,11 +1,12 @@
-import { GlassContainer, GlassView } from "expo-glass-effect";
+import { GlassView } from "expo-glass-effect";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { StyleSheet, View } from "react-native";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { AppText } from "@/components/ui/AppText";
+import { Pressable } from "@/components/ui/Pressable";
 import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavRankingIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { tapHaptic } from "@/services/native/haptics";
@@ -18,12 +19,18 @@ const TABS: { href: Href; icon: typeof NavHojeIcon; label: string }[] = [
 ];
 
 const HIGHLIGHT_INSET = 6;
+const DRAG_SLOP = 10;
 const SPRING = { damping: 22, stiffness: 260, mass: 0.7 };
 
-// Real native glass, not glassmorphism: the selection highlight is a second
-// `GlassView` sharing a `GlassContainer` with the pill background, so on
-// iOS 26 it visually merges with it (UIVisualEffectView), and it follows the
-// finger while dragging via Reanimated worklets instead of just snapping.
+// Real native glass, not glassmorphism: the bar is one `GlassView`
+// (UIVisualEffectView on iOS 26) that content scrolls under.
+//
+// The selection capsule is deliberately NOT a second GlassView. Apple's own
+// guidance is to avoid layering Liquid Glass on Liquid Glass, and in practice
+// a glass capsule tinted with `ember` over the dark bar renders as a muddy
+// dark-red blob whose halo escapes `overflow: hidden`. The selected tab is
+// signalled the way Apple does it — brand color on the icon and label — over a
+// flat ember wash, the same one SimpleTabBar uses.
 export function GlassTabBar({ activeIndex }: { activeIndex: number }) {
   const { colors } = useTheme();
   const router = useRouter();
@@ -45,28 +52,32 @@ export function GlassTabBar({ activeIndex }: { activeIndex: number }) {
     router.navigate(TABS[clamped].href);
   };
 
+  // Drag only — tapping is left to the Pressables below. A Pan is only ever
+  // activated from a touch *move* event, so a bar driven by Pan alone can be
+  // switched by dragging but never by a plain tap.
   const pan = Gesture.Pan()
-    .minDistance(0)
-    .onBegin((event) => {
+    .activeOffsetX([-DRAG_SLOP, DRAG_SLOP])
+    .onStart(() => {
       "worklet";
-      if (tabWidth <= 0) return;
       isDragging.value = true;
-      const target = Math.min(Math.max(event.x - tabWidth / 2, 0), barWidth - tabWidth);
-      translateX.value = target;
     })
     .onUpdate((event) => {
       "worklet";
       if (tabWidth <= 0) return;
-      const target = Math.min(Math.max(event.x - tabWidth / 2, 0), barWidth - tabWidth);
-      translateX.value = target;
+      translateX.value = Math.min(Math.max(event.x - tabWidth / 2, 0), barWidth - tabWidth);
     })
     .onEnd(() => {
       "worklet";
       if (tabWidth <= 0) return;
       const index = Math.round(translateX.value / tabWidth);
       translateX.value = withSpring(index * tabWidth, SPRING);
-      isDragging.value = false;
       runOnJS(navigateToIndex)(index);
+    })
+    // Not onEnd: a Pan that never activated skips onEnd entirely, and a stuck
+    // `isDragging` freezes the highlight for good.
+    .onFinalize(() => {
+      "worklet";
+      isDragging.value = false;
     });
 
   const highlightStyle = useAnimatedStyle(() => ({
@@ -74,20 +85,16 @@ export function GlassTabBar({ activeIndex }: { activeIndex: number }) {
   }));
 
   return (
-    <GlassContainer
-      spacing={20}
+    <GlassView
+      glassEffectStyle="regular"
+      colorScheme="dark"
+      tintColor={colors.inverse}
       style={{ height: 62, borderRadius: 31, overflow: "hidden" }}
       onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
     >
-      <GlassView
-        glassEffectStyle="regular"
-        colorScheme="dark"
-        tintColor={colors.inverse}
-        style={StyleSheet.absoluteFill}
-      />
-
       {barWidth > 0 ? (
         <Animated.View
+          pointerEvents="none"
           style={[
             {
               position: "absolute",
@@ -99,31 +106,37 @@ export function GlassTabBar({ activeIndex }: { activeIndex: number }) {
             highlightStyle,
           ]}
         >
-          <GlassView
-            isInteractive
-            glassEffectStyle="regular"
-            tintColor={colors.ember}
-            style={{ flex: 1, borderRadius: 22 }}
-          />
+          <View style={{ flex: 1, borderRadius: 22, backgroundColor: `${colors.ember}29` }} />
         </Animated.View>
       ) : null}
 
       <GestureDetector gesture={pan}>
         <View style={{ flex: 1, flexDirection: "row" }}>
-          {TABS.map((tab, index) => (
-            <View key={tab.label} pointerEvents="none" className="flex-1 items-center justify-center" style={{ gap: 4 }}>
-              <tab.icon color={index === activeIndex ? colors.ember : colors.onInverseMuted} />
-              <AppText
-                family="manrope"
-                weight={index === activeIndex ? "extraBold" : "semiBold"}
-                style={{ fontSize: 10, color: index === activeIndex ? colors.ember : colors.onInverseMuted }}
+          {TABS.map((tab, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <Pressable
+                key={tab.label}
+                haptic="selection"
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                onPress={() => router.navigate(tab.href)}
+                style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}
               >
-                {tab.label}
-              </AppText>
-            </View>
-          ))}
+                <tab.icon color={isActive ? colors.ember : colors.onInverseMuted} />
+                <AppText
+                  family="manrope"
+                  weight={isActive ? "extraBold" : "semiBold"}
+                  numberOfLines={1}
+                  style={{ fontSize: 10, color: isActive ? colors.ember : colors.onInverseMuted }}
+                >
+                  {tab.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
         </View>
       </GestureDetector>
-    </GlassContainer>
+    </GlassView>
   );
 }

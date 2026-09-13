@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -72,7 +73,7 @@ export default function SecurityScreen() {
     <Screen>
       <PageHeader title="E-mail e segurança" onBack={() => router.back()} />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 80 }}
@@ -157,7 +158,7 @@ export default function SecurityScreen() {
             }
           />
         </SettingsSection>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

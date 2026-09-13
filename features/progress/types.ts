@@ -1,10 +1,6 @@
-/** `rest`: dia sem ação principal no plano — descanso, não falha. */
-export type WeekDayState = "done" | "today" | "miss" | "next" | "rest";
-
-export type WeekDay = {
-  label: string;
-  state: WeekDayState;
-};
+// A semana é a mesma leitura na Hoje e no Progresso: um tipo só, mora junto
+// do componente que a desenha.
+export type { WeekDay, WeekDayState } from "@/components/ui/WeekStrip";
 
 export type Area = {
   name: string;

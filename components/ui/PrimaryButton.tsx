@@ -3,6 +3,7 @@ import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { ArrowRightIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { buttonGlow } from "@/constants/glow";
 
 type PrimaryButtonProps = {
   label: string;
@@ -35,7 +36,7 @@ export function PrimaryButton({
           gap: 10,
           opacity: inert ? 0.55 : 1,
           backgroundColor: colors.ember,
-          boxShadow: strong ? `0 16px 34px ${colors.ember}57` : `0 12px 26px ${colors.ember}42`,
+          boxShadow: buttonGlow(strong ? `0 16px 34px ${colors.ember}57` : `0 12px 26px ${colors.ember}42`),
         }}
       >
         {loading ? (

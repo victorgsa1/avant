@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "avant",
+    "name": "Avant",
     "slug": "avant",
     "scheme": "avant",
     "version": "0.0.1",
@@ -61,7 +61,7 @@
         "expo-image-picker",
         {
           "cameraPermission": "O Avant usa a câmera para você comprovar a ação principal do dia com uma foto.",
-          "photosPermission": false,
+          "photosPermission": "O Avant acessa suas fotos para você escolher uma imagem que comprove a ação principal do dia.",
           "microphonePermission": "O Avant usa o microfone para você responder falando."
         }
       ],

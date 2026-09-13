@@ -3,10 +3,10 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Pressable } from "@/components/ui/Pressable";
 import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
@@ -203,11 +203,7 @@ export default function ConversationScreen() {
         </AppText>
       ) : null}
 
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}

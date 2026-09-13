@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, ScrollView, View } from "react-native";
+import { Alert, Platform, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -117,7 +118,7 @@ export default function NotificationSettingsScreen() {
     <Screen>
       <PageHeader title="Notificações" onBack={() => router.back()} />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 90 }}
@@ -247,7 +248,7 @@ export default function NotificationSettingsScreen() {
             onPress={() => void createReminder()}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

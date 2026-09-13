@@ -54,6 +54,15 @@ export type ThemeColors = {
   onInverse: string;
   onInverseMuted: string;
 
+  // Cartão "papel": claro nos DOIS temas, assim como `inverse` é escuro nos
+  // dois. É o fundo do card da principal na Hoje — a folha onde o
+  // compromisso do dia está escrito.
+  paper: string;
+  paperRaised: string;
+  paperSunken: string;
+  onPaper: string;
+  onPaperMuted: string;
+
   // Maximum contrast against the page background, and the content that sits
   // on it. Unlike `inverse` these DO flip: near-black in light, near-white in
   // dark. Used by the Sign in with Apple button, whose own guidelines require
@@ -107,6 +116,12 @@ export const lightColors: ThemeColors = {
   inverse: "#2A2521",
   onInverse: "#FBFAF8",
   onInverseMuted: "rgba(251,250,248,0.55)",
+
+  paper: "#F6F1E8",
+  paperRaised: "#FFFFFF",
+  paperSunken: "#EFE4D3",
+  onPaper: "#241F1B",
+  onPaperMuted: "#8C8175",
 
   contrast: "#000000",
   onContrast: "#FFFFFF",
@@ -168,6 +183,12 @@ export const darkColors: ThemeColors = {
   inverse: "#303030",
   onInverse: "#FBFAF8",
   onInverseMuted: "rgba(250,250,250,0.55)",
+
+  paper: "#F6F1E8",
+  paperRaised: "#FFFFFF",
+  paperSunken: "#EFE4D3",
+  onPaper: "#241F1B",
+  onPaperMuted: "#8C8175",
 
   contrast: "#FFFFFF",
   onContrast: "#000000",

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { LogoutIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { buttonGlow } from "@/constants/glow";
 import { AppText } from "@/components/ui/AppText";
 
 type AccountFooterProps = {
@@ -36,7 +37,7 @@ export function AccountFooter({ versionLabel, onPressSignOut }: AccountFooterPro
           justifyContent: "center",
           gap: 10,
           backgroundColor: pressed ? colors.emberInk : colors.ember,
-          boxShadow: `0 12px 26px ${colors.ember}42`,
+          boxShadow: buttonGlow(`0 12px 26px ${colors.ember}42`),
         }}
       >
         <LogoutIcon size={18} color={colors.onEmber} />

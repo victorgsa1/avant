@@ -1,27 +1,27 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { adaptationsApi, habitsApi, progressApi, rankingApi, todayApi } from "@/services/api";
+import { adaptationsApi, habitsApi, progressApi, todayApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type {
   AdaptationProposal,
   DailyActionResponse,
-  ProgressSummaryResponse,
-  RankingResponse,
+  ProgressOverviewResponse,
   TodayResponse,
 } from "@/services/http/types";
+import type { WeekDay } from "@/components/ui/WeekStrip";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import type { RankingEntry, Task } from "../types";
+import type { Task } from "../types";
 
 interface HomePayload {
   today: TodayResponse;
-  summary: ProgressSummaryResponse;
-  ranking: RankingResponse;
+  /** Só a semana interessa aqui — nível e XP vivem na aba Progresso. */
+  overview: ProgressOverviewResponse;
   /** Propostas do motor adaptativo — geralmente vazio, e tudo bem. */
   adaptations: AdaptationProposal[];
 }
 
-function initialOf(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || "?";
-}
+const WEEKDAY_INITIALS = ["D", "S", "T", "Q", "Q", "S", "S"];
+const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 function greetingFor(date = new Date()): string {
   const hour = date.getHours();
@@ -30,20 +30,43 @@ function greetingFor(date = new Date()): string {
   return "Boa noite";
 }
 
-/** "até 21:00" a partir da janela da ação. */
-function windowLabelOf(action: DailyActionResponse): string {
-  const end = action.time.windowEnd ?? action.time.plannedAt;
-  if (!end) return "quando der hoje";
-  const date = new Date(end);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `até ${hh}:${mm}`;
+/** "Qui, 10 set" — escrito à mão porque Intl não é confiável no Hermes. */
+function dateLabelOf(date = new Date()): string {
+  return `${WEEKDAY_SHORT[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
+}
+
+/**
+ * A inicial vem da data, não da posição na lista: assim a faixa continua
+ * certa se o servidor mudar o primeiro dia da semana. Meio-dia local evita
+ * que "2026-09-10" vire o dia anterior em fuso negativo.
+ */
+function weekdayInitialOf(isoDate: string): string {
+  return WEEKDAY_INITIALS[new Date(`${isoDate}T12:00:00`).getDay()] ?? "";
+}
+
+/** "18h30" — a hora reservada para o compromisso do dia. */
+function timeLabelOf(action: DailyActionResponse): string | null {
+  const at = action.time.plannedAt ?? action.time.windowEnd;
+  if (!at) return null;
+  const date = new Date(at);
+  return `${String(date.getHours()).padStart(2, "0")}h${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+/** "20 minutos · Depois do trabalho". */
+function detailOf(action: DailyActionResponse): string | null {
+  const minutes = action.minutes !== null ? `${action.minutes} minutos` : null;
+  const variantTitle = action.variant?.title ?? null;
+  // Variante que só repete a duração viraria "20 minutos · 20 min".
+  const context = variantTitle && !variantTitle.toLowerCase().includes("min") ? variantTitle : null;
+  const parts = [minutes, context].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function toTask(action: DailyActionResponse): Task {
   return {
     id: action.id,
     label: action.titleSnapshot || action.habit.title,
+    iconKey: action.habit.iconKey,
     xp: action.xp.possible,
     done: action.status === "COMPLETED",
   };
@@ -52,14 +75,13 @@ function toTask(action: DailyActionResponse): Task {
 export function useHomeData() {
   const resource = useAsyncResource<HomePayload>(
     useCallback(async () => {
-      const [today, summary, ranking, adaptations] = await Promise.all([
+      const [today, overview, adaptations] = await Promise.all([
         todayApi.get(),
-        progressApi.summary(),
-        rankingApi.get("week"),
+        progressApi.overview(),
         // O motor é acessório da tela: se ele falhar, o dia continua.
         adaptationsApi.list().catch(() => [] as AdaptationProposal[]),
       ]);
-      return { today, summary, ranking, adaptations };
+      return { today, overview, adaptations };
     }, []),
   );
 
@@ -199,7 +221,7 @@ export function useHomeData() {
   const view = useMemo(() => {
     if (!data) return null;
 
-    const { today, summary, ranking } = data;
+    const { today, overview } = data;
 
     // Uma principal por dia (o servidor garante); o resto é complementar.
     const primary = today.actions.find((action) => action.role === "PRIMARY") ?? null;
@@ -207,31 +229,19 @@ export function useHomeData() {
       .filter((action) => action.role === "COMPLEMENTARY" && action.status !== "SKIPPED")
       .map((action) => ({ ...toTask(action), pending: pendingIds.includes(action.id) }));
 
-    const rankingEntries: RankingEntry[] = ranking.rows.slice(0, 3).map((row) => ({
-      rank: row.position,
-      name: row.isCurrentUser ? "Você" : row.name,
-      initial: initialOf(row.name),
-      xp: row.xp,
-      isCurrentUser: row.isCurrentUser,
+    const week: WeekDay[] = overview.week.days.map((day) => ({
+      label: weekdayInitialOf(day.date),
+      state: day.state,
     }));
 
     return {
-      level: summary.levelProgress.level,
-      nextLevel: summary.levelProgress.level + 1,
       streakDays: today.progress.streak,
       tasks,
       doneCount: tasks.filter((task) => task.done).length,
       totalTasks: tasks.length,
-      currentXP: summary.xpTotal,
-      remainingXP: Math.max(
-        0,
-        summary.levelProgress.xpForNextLevel - summary.levelProgress.xpIntoLevel,
-      ),
-      progress: Math.min(1, summary.levelProgress.progressPercent / 100),
       greeting: greetingFor(),
-      ranking: rankingEntries,
-      rivalName: ranking.next?.name ?? null,
-      gapXP: ranking.next?.xpDelta ?? 0,
+      dateLabel: dateLabelOf(),
+      week,
       unreadNotifications: today.unreadNotifications,
       adaptations: data.adaptations,
       insight: today.insight,
@@ -241,13 +251,17 @@ export function useHomeData() {
         ? {
             id: primary.id,
             title: primary.titleSnapshot || primary.habit.title,
-            variantTitle: primary.variant?.title ?? null,
-            windowLabel: windowLabelOf(primary),
+            iconKey: primary.habit.iconKey,
+            detail: detailOf(primary),
+            timeLabel: timeLabelOf(primary),
             minutes: primary.minutes,
             xp: primary.xp.possible,
             awardedXp: primary.xp.awarded,
             completedAt: primary.completedAt,
             status: primary.status,
+            /** As versões possíveis — é daqui que sai o "Mínimo" do card. */
+            variants: primary.variants ?? [],
+            plannedVariant: primary.variant?.type ?? null,
           }
         : null,
     };

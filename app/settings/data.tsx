@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Platform, ScrollView, View } from "react-native";
+import { Alert, Platform, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -62,7 +63,7 @@ export default function DataScreen() {
     <Screen>
       <PageHeader title="Dados e privacidade" onBack={() => router.back()} />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 80 }}
@@ -123,7 +124,7 @@ export default function DataScreen() {
             />
           </SettingsSection>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

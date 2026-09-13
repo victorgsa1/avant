@@ -62,7 +62,13 @@ function spotOf(position: LocationLib.LocationObject): Spot | null {
  */
 export default function CompleteActionScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ id: string; title?: string; minutes?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    title?: string;
+    minutes?: string;
+    /** A versão escolhida na Hoje — em geral "MINIMUM" quando o dia apertou. */
+    variantType?: string;
+  }>();
   const [phase, setPhase] = useState<Phase>("permissions");
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -165,6 +171,8 @@ export default function CompleteActionScreen() {
       if (spot.accuracy !== null) form.append("accuracy", String(spot.accuracy));
       form.append("mocked", "false");
       form.append("capturedAt", takenAt);
+      // Sem isto o servidor conclui pela versão planejada, não pela feita.
+      if (params.variantType) form.append("variantType", params.variantType);
 
       const result = await todayApi.completeWithProof(params.id, form);
       const reward = result.reward;

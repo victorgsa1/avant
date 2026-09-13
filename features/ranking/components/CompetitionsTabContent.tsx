@@ -4,6 +4,7 @@ import { AppText } from "@/components/ui/AppText";
 import { EmptyState } from "@/components/layout/ScreenState";
 import { PlusIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { buttonGlow } from "@/constants/glow";
 import type { CompetitionResponse } from "@/services/http/types";
 import { ClosedCompetitionRow } from "./ClosedCompetitionRow";
 import { GroupCompetitionCard } from "./GroupCompetitionCard";
@@ -240,7 +241,7 @@ export function CompetitionsTabContent({
             backgroundColor: colors.ember,
             paddingVertical: 16,
             paddingHorizontal: 22,
-            boxShadow: `0 12px 26px ${colors.ember}38`,
+            boxShadow: buttonGlow(`0 12px 26px ${colors.ember}38`),
           }}
         >
           <PlusIcon size={16} />

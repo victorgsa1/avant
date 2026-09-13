@@ -41,11 +41,11 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     habitTitle: "Treino de academia",
     windowLabel: "Depois das 19h",
     startMinute: 19 * 60,
-    weeklyTarget: 5,
+    weeklyTarget: 3,
     xpBase: 40,
     difficulty: 3,
     standard: "40 min de musculação + 15 min de cardio leve",
-    minimum: "30 min de musculação (treino reduzido)",
+    minimum: "10 minutos de corpo livre, onde você estiver",
   },
   rotina: {
     habitTitle: "Organizar o dia seguinte",
@@ -61,7 +61,7 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     habitTitle: "Um bloco de foco sem interrupção",
     windowLabel: "No começo da manhã",
     startMinute: 9 * 60,
-    weeklyTarget: 5,
+    weeklyTarget: 3,
     xpBase: 25,
     difficulty: 3,
     standard: "50 minutos de trabalho profundo",
@@ -101,11 +101,11 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     habitTitle: "Praticar minha arte",
     windowLabel: "Depois das 19h",
     startMinute: 19 * 60,
-    weeklyTarget: 5,
+    weeklyTarget: 3,
     xpBase: 25,
     difficulty: 2,
     standard: "30 minutos de prática focada",
-    minimum: "10 minutos de prática",
+    minimum: "10 minutos com o que estiver à mão",
   },
   outro: {
     habitTitle: "Meu primeiro passo do dia",
@@ -115,7 +115,7 @@ const BLUEPRINTS: Record<AreaId, AreaBlueprint> = {
     xpBase: 20,
     difficulty: 2,
     standard: "30 minutos dedicados à meta",
-    minimum: "5 minutos já mantêm o movimento",
+    minimum: "10 minutos já mantêm o movimento",
   },
 };
 
@@ -133,7 +133,7 @@ function summaryFor(identity: string): string {
 }
 
 /** 1170 → "A partir das 19h30". */
-function windowFromMinute(startMinute: number): string {
+export function windowFromMinute(startMinute: number): string {
   const hours = Math.floor(startMinute / 60);
   const minutes = startMinute % 60;
   return `A partir das ${hours}h${minutes ? String(minutes).padStart(2, "0") : ""}`;
@@ -154,6 +154,7 @@ export function buildStarterPlan(area: AreaId | null, identity: string): Starter
     hardDays: bp.minimum,
     missedDay: MISSED_DAY,
     extras: [],
+    primary: { title: bp.habitTitle, weeklyTarget: bp.weeklyTarget, startMinute: bp.startMinute },
   };
 }
 
@@ -176,6 +177,11 @@ export function starterPlanFromPreview(preview: PlanPreviewResponse, identity: s
       title: habit.title,
       detail: `${habit.weeklyTarget}x por semana · ${habit.minimumVersion} nos dias difíceis`,
     })),
+    primary: {
+      title: primary.title,
+      weeklyTarget: primary.weeklyTarget,
+      startMinute: primary.startMinute,
+    },
   };
 }
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Pressable } from "@/components/ui/Pressable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -25,10 +26,7 @@ export function AuthShell({ title, subtitle, onBack, children, footer }: AuthShe
     <OnboardingCanvas>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{

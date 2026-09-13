@@ -19,6 +19,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/components/theme/ThemeProvider";
 import { SessionProvider, useSession } from "@/features/auth/SessionProvider";
@@ -122,13 +123,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <SessionProvider>
-            <RootNavigator />
-          </SessionProvider>
-        </ThemeProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <SessionProvider>
+              <RootNavigator />
+            </SessionProvider>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

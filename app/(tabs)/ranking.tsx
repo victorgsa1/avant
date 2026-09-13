@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView } from "react-native";
+import { RefreshControl } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
@@ -93,7 +94,7 @@ export default function RankingScreen() {
         onDone={() => void onUsernameDone()}
       />
 
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -171,7 +172,7 @@ export default function RankingScreen() {
             ) : null}
           </>
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Screen>
   );
 }

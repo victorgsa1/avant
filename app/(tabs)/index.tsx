@@ -1,18 +1,20 @@
+import { useState } from "react";
 import { Alert, Platform, RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
+import { WeekStrip } from "@/components/ui/WeekStrip";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
 import { AdaptationCard } from "@/features/home/components/AdaptationCard";
-import { FriendsRankingCard } from "@/features/home/components/FriendsRankingCard";
-import { HeroLevelRow } from "@/features/home/components/HeroLevelRow";
+import { ComplementaryList } from "@/features/home/components/ComplementaryList";
+import { HomeGreeting } from "@/features/home/components/HomeGreeting";
 import { HomeTopBar } from "@/features/home/components/HomeTopBar";
-import { NextActionCard } from "@/features/home/components/NextActionCard";
+import { PrimaryActionCard } from "@/features/home/components/PrimaryActionCard";
 import { PrimaryDoneCard } from "@/features/home/components/PrimaryDoneCard";
-import { TodayTaskList } from "@/features/home/components/TodayTaskList";
 import { useHomeData } from "@/features/home/hooks/useHomeData";
+import type { ActionVariantType } from "@/services/http/types";
 
 function StatusCard({
   title,
@@ -25,7 +27,7 @@ function StatusCard({
 }) {
   const { colors } = useTheme();
   return (
-    <View className="px-5" style={{ marginTop: 26 }}>
+    <View className="px-5" style={{ marginTop: 24 }}>
       <View
         className="rounded-[26px]"
         style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}
@@ -55,6 +57,10 @@ export default function HojeScreen() {
     actionError,
   } = useHomeData();
 
+  // Qual versão a pessoa vai fazer hoje. Vive na tela porque é decisão do
+  // momento: só vira fato no servidor quando a principal é concluída.
+  const [chosenVariant, setChosenVariant] = useState<ActionVariantType | null>(null);
+
   /**
    * Pular custa uma confirmação de propósito: é uma decisão sobre o
    * próprio dia, não um toque acidental na lista.
@@ -73,6 +79,18 @@ export default function HojeScreen() {
   const firstName = user?.name?.split(" ")[0] ?? "";
   const avatarInitial = (user?.name ?? "?").trim().charAt(0).toUpperCase();
   const primary = view?.primaryAction ?? null;
+
+  // A escolha local só vale enquanto a versão existir no plano do dia —
+  // depois de um refresh que troque o hábito, volta para a planejada.
+  const selectedVariant =
+    chosenVariant && primary?.variants.some((variant) => variant.type === chosenVariant)
+      ? chosenVariant
+      : (primary?.plannedVariant ?? null);
+
+  const selectedMinutes =
+    primary?.variants.find((variant) => variant.type === selectedVariant)?.minutes ??
+    primary?.minutes ??
+    null;
 
   if (loading && !view) {
     return (
@@ -114,27 +132,11 @@ export default function HojeScreen() {
           onPressBell={() => router.push("/notifications")}
         />
 
-        <HeroLevelRow
-          level={view.level}
-          nextLevel={view.nextLevel}
-          progress={view.progress}
-          greeting={view.greeting}
-          name={firstName}
-          currentXP={view.currentXP}
-          remainingXP={view.remainingXP}
-          streakDays={view.streakDays}
-        />
+        <HomeGreeting greeting={view.greeting} name={firstName} dateLabel={view.dateLabel} />
 
-        {/* O motor adaptativo aparece aqui e em nenhum outro lugar. */}
-        {view.adaptations.map((proposal) => (
-          <AdaptationCard
-            key={proposal.id}
-            proposal={proposal}
-            busy={adaptationBusyId === proposal.id}
-            onApply={(id) => respondToAdaptation(id, "apply")}
-            onDismiss={(id) => respondToAdaptation(id, "dismiss")}
-          />
-        ))}
+        <View className="px-6" style={{ marginTop: 24 }}>
+          <WeekStrip days={view.week} />
+        </View>
 
         {/* Linguagem nunca punitiva: uma retomada é informação, não castigo. */}
         {view.recovery ? (
@@ -155,24 +157,26 @@ export default function HojeScreen() {
 
         {/* A principal: uma por dia, concluída com foto + localização. */}
         {primary && primary.status === "PLANNED" ? (
-          <NextActionCard
-            label="Principal de hoje"
-            windowLabel={primary.windowLabel}
+          <PrimaryActionCard
+            timeLabel={primary.timeLabel}
             title={primary.title}
-            detail={primary.variantTitle}
-            minutes={primary.minutes}
-            xp={primary.xp}
-            onPressStart={() =>
+            iconKey={primary.iconKey}
+            detail={primary.detail}
+            variants={primary.variants}
+            selectedType={selectedVariant}
+            onSelectVariant={setChosenVariant}
+            onComplete={() =>
               router.push({
                 pathname: "/complete-action/[id]",
                 params: {
                   id: primary.id,
                   title: primary.title,
-                  minutes: primary.minutes !== null ? String(primary.minutes) : "",
+                  minutes: selectedMinutes !== null ? String(selectedMinutes) : "",
+                  variantType: selectedVariant ?? "",
                 },
               })
             }
-            onPressAdjust={() => router.push("/settings/habits")}
+            onAdjust={() => router.push("/settings/habits")}
           />
         ) : primary && primary.status === "COMPLETED" ? (
           <PrimaryDoneCard
@@ -197,9 +201,19 @@ export default function HojeScreen() {
           <StatusCard title="Dia de descanso" description="A principal volta amanhã." />
         )}
 
+        {/* O motor adaptativo aparece aqui e em nenhum outro lugar. */}
+        {view.adaptations.map((proposal) => (
+          <AdaptationCard
+            key={proposal.id}
+            proposal={proposal}
+            busy={adaptationBusyId === proposal.id}
+            onApply={(id) => respondToAdaptation(id, "apply")}
+            onDismiss={(id) => respondToAdaptation(id, "dismiss")}
+          />
+        ))}
+
         {view.tasks.length > 0 ? (
-          <TodayTaskList
-            title="Complementares"
+          <ComplementaryList
             tasks={view.tasks}
             doneCount={view.doneCount}
             totalTasks={view.totalTasks}
@@ -222,14 +236,6 @@ export default function HojeScreen() {
           >
             {actionError}
           </AppText>
-        ) : null}
-
-        {view.ranking.length > 1 ? (
-          <FriendsRankingCard
-            ranking={view.ranking}
-            gapXP={view.gapXP}
-            rivalName={view.rivalName ?? ""}
-          />
         ) : null}
       </ScrollView>
     </Screen>

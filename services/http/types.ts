@@ -16,6 +16,8 @@ export interface AuthTokens {
 }
 
 /** Recorte devolvido por `register` / `login` (não é o /me completo). */
+export type PlanTier = "FREE" | "PRO";
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -24,6 +26,8 @@ export interface AuthUser {
   avatarUrl: string | null;
   level: number;
   xpTotal: number;
+  /** Na fase inicial todo cadastro é PRO — ver docs/MONETIZACAO.md. */
+  plan: PlanTier;
 }
 
 export interface AuthResponse {
@@ -148,8 +152,14 @@ export interface DailyActionResponse {
   id: string;
   /** PRIMARY: compromisso do dia (prova + XP). COMPLEMENTARY: sem prova e sem XP. */
   role: HabitRole;
-  habit: { id: string; title: string };
+  /** `iconKey`: o desenho escolhido quando o plano nasceu. Null em hábitos antigos. */
+  habit: { id: string; title: string; iconKey: string | null };
   variant: { type: ActionVariantType; title: string } | null;
+  /**
+   * Todas as versões do hábito — é daqui que o card tira o "Mínimo".
+   * Opcional porque servidores anteriores a este campo não o enviam.
+   */
+  variants?: { type: ActionVariantType; title: string; minutes: number | null; xp: number }[];
   titleSnapshot: string;
   /** Duração da versão do dia, quando medida em minutos. */
   minutes: number | null;

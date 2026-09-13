@@ -1,7 +1,8 @@
-import type { ComponentType, ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
+import { TextField } from "@/components/ui/TextField";
 import {
   BarsIcon,
   BookIcon,
@@ -12,12 +13,15 @@ import {
   ComebackIcon,
   DumbbellIcon,
   HeartFilledIcon,
+  MinusIcon,
   MusicIcon,
   PeopleIcon,
+  PlusLineIcon,
   SparkleIcon,
 } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import type { StarterPlan } from "../types";
+import { windowFromMinute } from "../planBuilder";
+import type { PlanEdits, StarterPlan } from "../types";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type PlanStepProps = {
@@ -29,8 +33,17 @@ type PlanStepProps = {
   error?: string | null;
   loading?: boolean;
   onConfirm: () => void;
-  onAdjust?: () => void;
+  /** O plano como está na tela — o do servidor com as correções por cima. */
+  values: PlanEdits;
+  onChange: (patch: Partial<PlanEdits>) => void;
 };
+
+/** "19h30" — o horário que a pessoa escolheu para o compromisso. */
+function timeLabel(startMinute: number): string {
+  const hours = Math.floor(startMinute / 60);
+  const minutes = startMinute % 60;
+  return `${hours}h${String(minutes).padStart(2, "0")}`;
+}
 
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
 
@@ -121,7 +134,15 @@ function PlanRow({ icon, title, detail, tone = "default" }: PlanRowProps) {
 }
 
 /** O card do plano (principal + versões) e as complementares, se houver. */
-function PlanDetails({ plan, isFallback }: { plan: StarterPlan; isFallback?: boolean }) {
+function PlanDetails({
+  plan,
+  isFallback,
+  values,
+}: {
+  plan: StarterPlan;
+  isFallback?: boolean;
+  values: PlanEdits;
+}) {
   const { colors } = useTheme();
   const AreaIcon = AREA_ICONS[plan.areaName] ?? SparkleIcon;
   return (
@@ -154,11 +175,13 @@ function PlanDetails({ plan, isFallback }: { plan: StarterPlan; isFallback?: boo
             <AreaIcon size={20} color={colors.onEmber} />
           </View>
           <View className="flex-1">
+            {/* Título, horário e frequência saem do que está na tela: editar
+                em cima muda o card embaixo, sem confirmar nada ainda. */}
             <AppText family="archivo" weight="black" style={{ fontSize: 18, letterSpacing: -0.5, color: colors.text }}>
-              {plan.title}
+              {values.title}
             </AppText>
             <AppText family="manrope" weight="bold" style={{ marginTop: 2, fontSize: 12.5, color: colors.emberInk }}>
-              {plan.areaName} · {plan.window}
+              {plan.areaName} · {windowFromMinute(values.startMinute)} · {values.weeklyTarget}x por semana
             </AppText>
           </View>
         </View>
@@ -202,6 +225,100 @@ function PlanDetails({ plan, isFallback }: { plan: StarterPlan; isFallback?: boo
   );
 }
 
+function StepperRow({
+  label,
+  value,
+  onDecrease,
+  onIncrease,
+}: {
+  label: string;
+  value: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  const { colors } = useTheme();
+  const round = (icon: ReactNode, onPress: () => void) => (
+    <Pressable
+      onPress={onPress}
+      haptic="selection"
+      className="items-center justify-center rounded-full"
+      style={{ width: 36, height: 36, borderWidth: 1.3, borderColor: colors.lineStrong }}
+    >
+      {icon}
+    </Pressable>
+  );
+
+  return (
+    <View className="flex-row items-center justify-between" style={{ paddingTop: 14 }}>
+      <AppText family="manrope" weight="semiBold" style={{ fontSize: 13.5, color: colors.textMuted }}>
+        {label}
+      </AppText>
+      <View className="flex-row items-center" style={{ gap: 12 }}>
+        {round(<MinusIcon size={18} color={colors.textStrong} />, onDecrease)}
+        <AppText
+          family="archivo"
+          weight="extraBold"
+          style={{ minWidth: 86, textAlign: "center", fontSize: 15, color: colors.text }}
+        >
+          {value}
+        </AppText>
+        {round(<PlusLineIcon size={18} color={colors.textStrong} />, onIncrease)}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Corrigir o plano aqui mesmo.
+ *
+ * Antes, "Quero ajustar" voltava uma pergunta: para mudar a atividade, a
+ * pessoa tinha que reformular a própria história até a IA devolver outra
+ * coisa. Atividade, frequência e horário são correções diretas — e é isso
+ * que "Sim, esse é meu plano" grava.
+ */
+function PlanEditor({
+  values,
+  onChange,
+}: {
+  values: PlanEdits;
+  onChange: (patch: Partial<PlanEdits>) => void;
+}) {
+  const { colors } = useTheme();
+  const wrapMinute = (minute: number) => (minute + 24 * 60) % (24 * 60);
+
+  return (
+    <View
+      className="rounded-[22px]"
+      style={{
+        marginTop: 12,
+        padding: 16,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.line,
+      }}
+    >
+      <TextField
+        label="Atividade"
+        value={values.title}
+        onChangeText={(title) => onChange({ title })}
+        maxLength={80}
+      />
+      <StepperRow
+        label="Vezes por semana"
+        value={`${values.weeklyTarget}x`}
+        onDecrease={() => onChange({ weeklyTarget: Math.max(1, values.weeklyTarget - 1) })}
+        onIncrease={() => onChange({ weeklyTarget: Math.min(7, values.weeklyTarget + 1) })}
+      />
+      <StepperRow
+        label="Começa às"
+        value={timeLabel(values.startMinute)}
+        onDecrease={() => onChange({ startMinute: wrapMinute(values.startMinute - 30) })}
+        onIncrease={() => onChange({ startMinute: wrapMinute(values.startMinute + 30) })}
+      />
+    </View>
+  );
+}
+
 export function PlanStep({
   plan,
   planLoading,
@@ -209,9 +326,11 @@ export function PlanStep({
   error,
   loading,
   onConfirm,
-  onAdjust,
+  values,
+  onChange,
 }: PlanStepProps) {
   const { colors } = useTheme();
+  const [editing, setEditing] = useState(false);
   return (
     <View className="flex-1" style={{ paddingHorizontal: 20, paddingBottom: 30 }}>
       <View style={{ paddingHorizontal: 4 }}>
@@ -236,7 +355,9 @@ export function PlanStep({
         </View>
       </View>
 
-      {planLoading ? <PlanLoading /> : <PlanDetails plan={plan} isFallback={isFallback} />}
+      {planLoading ? <PlanLoading /> : <PlanDetails plan={plan} isFallback={isFallback} values={values} />}
+
+      {!planLoading && editing ? <PlanEditor values={values} onChange={onChange} /> : null}
 
       <View
         className="flex-row rounded-[20px]"
@@ -281,9 +402,14 @@ export function PlanStep({
         withArrow={false}
       />
 
-      <Pressable onPress={onAdjust} className="items-center" style={{ marginTop: 12 }}>
+      <Pressable
+        onPress={() => setEditing((current) => !current)}
+        disabled={planLoading}
+        className="items-center"
+        style={{ marginTop: 12, opacity: planLoading ? 0.4 : 1 }}
+      >
         <AppText family="archivo" weight="extraBold" style={{ fontSize: 14, color: colors.emberInk }}>
-          Quero ajustar
+          {editing ? "Pronto" : "Quero ajustar"}
         </AppText>
       </Pressable>
     </View>

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, RefreshControl, ScrollView, View } from "react-native";
+import { Alert, Platform, RefreshControl, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -84,7 +85,7 @@ export default function AreasScreen() {
       ) : null}
 
       {areas.data ? (
-        <ScrollView
+        <KeyboardAwareScrollView
           className="flex-1"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 80 }}
@@ -169,7 +170,7 @@ export default function AreasScreen() {
               </>
             ) : null}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       ) : null}
     </Screen>
   );

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SimpleTabBar } from "@/components/navigation/SimpleTabBar";
 import { PlusIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { buttonGlow } from "@/constants/glow";
 import { DevResetOnboardingButton } from "@/features/onboarding/components/DevResetOnboardingButton";
 
 const ROUTES = ["/", "/ranking", "/progress", "/profile"];
@@ -70,7 +71,7 @@ export default function TabsLayout() {
             width: 62,
             height: 62,
             backgroundColor: colors.ember,
-            boxShadow: `0 12px 26px ${colors.ember}59`,
+            boxShadow: buttonGlow(`0 12px 26px ${colors.ember}59`),
           }}
         >
           <PlusIcon color={colors.onEmber} />

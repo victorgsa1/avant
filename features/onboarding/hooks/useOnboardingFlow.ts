@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onboardingApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type { GeneratedPlanResponse, OnboardingQuestion } from "@/services/http/types";
-import type { AreaId, OnboardingAnswers, OnboardingStep, StarterPlan } from "../types";
+import type { AreaId, OnboardingAnswers, OnboardingStep, PlanEdits, StarterPlan } from "../types";
 import { buildStarterPlan, starterPlanFromPreview, suggestAreaFromText } from "../planBuilder";
 import { localValidateOnboardingAnswer, messageForCode } from "../validation";
 
@@ -60,10 +60,18 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
 
   const step = STEPS[index];
 
+  // A área é dica para o gerador, não uma pergunta obrigatória. Quando a
+  // fala já diz qual é ("quero voltar a correr"), a tela de área não tem o
+  // que desempatar — então ela não aparece.
+  const suggestedArea = useMemo(() => suggestAreaFromText(answers.identity), [answers.identity]);
+
   const advance = useCallback(() => {
     setError(null);
-    setIndex((current) => Math.min(current + 1, STEPS.length - 1));
-  }, []);
+    setIndex((current) => {
+      const next = Math.min(current + 1, STEPS.length - 1);
+      return STEPS[next] === "clarify" && suggestedArea ? next + 1 : next;
+    });
+  }, [suggestedArea]);
 
   /** Valida no cliente, envia ao backend e avança se for aceita. */
   const submitTextStep = useCallback(
@@ -106,6 +114,14 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
 
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlanResponse | null>(null);
 
+  // O que a pessoa corrigiu no card antes de confirmar. Só os campos
+  // tocados: o resto continua sendo o plano que o servidor montou.
+  const [planEdits, setPlanEdits] = useState<Partial<PlanEdits>>({});
+
+  const setPlanEdit = useCallback((patch: Partial<PlanEdits>) => {
+    setPlanEdits((current) => ({ ...current, ...patch }));
+  }, []);
+
   /**
    * Confirmar o plano manda as respostas para o servidor montar tudo:
    * identidade, áreas e hábitos com versão mínima.
@@ -119,7 +135,11 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
   const commitPlan = useCallback(async () => {
     setSubmitting(true);
     try {
-      const plan = await onboardingApi.generatePlan(answers.area ?? "outro");
+      const hasEdits = Object.keys(planEdits).length > 0;
+      const plan = await onboardingApi.generatePlan(
+        answers.area ?? "outro",
+        hasEdits ? planEdits : undefined,
+      );
       setGeneratedPlan(plan);
       advance();
     } catch (requestError) {
@@ -127,7 +147,7 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     } finally {
       setSubmitting(false);
     }
-  }, [advance, answers.area]);
+  }, [advance, answers.area, planEdits]);
 
   const goNext = useCallback(() => {
     if (submitting) return;
@@ -157,8 +177,10 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       onExit();
       return;
     }
-    setIndex(index - 1);
-  }, [index, onExit]);
+    const previous = index - 1;
+    // Voltar nunca cai numa tela que não chegou a aparecer.
+    setIndex(STEPS[previous] === "clarify" && suggestedArea ? previous - 1 : previous);
+  }, [index, onExit, suggestedArea]);
 
   const setAnswer = useCallback(<K extends keyof OnboardingAnswers>(key: K, value: OnboardingAnswers[K]) => {
     setError(null);
@@ -169,13 +191,13 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
     setAnswers((current) => ({ ...current, area }));
   }, []);
 
-  // Chegando no passo da área, já deixamos marcada a que a fala sugere
-  // ("guitarrista" → Criatividade). A pessoa pode trocar à vontade.
+  // A sugestão vale assim que a fala permite ("guitarrista" → Criatividade),
+  // seja para pular a tela de área, seja para deixá-la pré-marcada quando a
+  // pessoa chega nela. Escolha manual sempre ganha da sugestão.
   useEffect(() => {
-    if (step !== "clarify" || answers.area) return;
-    const suggested = suggestAreaFromText(answers.identity);
-    if (suggested) setAnswers((current) => ({ ...current, area: suggested }));
-  }, [answers.area, answers.identity, step]);
+    if (!suggestedArea || answers.area) return;
+    setAnswers((current) => ({ ...current, area: suggestedArea }));
+  }, [answers.area, suggestedArea]);
 
   /**
    * Prévia do plano: a IA estrutura o que a pessoa ESCREVEU (a área é só
@@ -216,6 +238,17 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
   const planLoading = step === "plan" && (previewLoading || preview?.key !== previewKey);
   const planIsFallback = !planLoading && preview?.plan === null;
 
+  // Plano novo é base nova: um ajuste feito sobre outro plano não vale mais.
+  useEffect(() => {
+    setPlanEdits({});
+  }, [previewKey]);
+
+  /** O plano como está na tela: o do servidor com as correções por cima. */
+  const planValues: PlanEdits = useMemo(
+    () => ({ ...plan.primary, ...planEdits }),
+    [plan.primary, planEdits],
+  );
+
   return useMemo(
     () => ({
       step,
@@ -224,6 +257,8 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       plan,
       planLoading,
       planIsFallback,
+      planValues,
+      setPlanEdit,
       generatedPlan,
       error,
       submitting,
@@ -238,6 +273,8 @@ export function useOnboardingFlow({ onFinish, onExit }: UseOnboardingFlowOptions
       generatedPlan,
       goBack,
       goNext,
+      planValues,
+      setPlanEdit,
       plan,
       planIsFallback,
       planLoading,
