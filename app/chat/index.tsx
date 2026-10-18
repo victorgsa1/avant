@@ -155,8 +155,8 @@ export default function ConversationsScreen() {
           ) : (
             <EmptyState
               title="Nenhuma conversa ainda"
-              description="Vá até Ranking → Amigos e toque em Conversar para começar."
-              action={{ label: "Ver amigos", onPress: () => router.replace("/ranking") }}
+              description="Vá até Social → Amigos e toque em Conversar para começar."
+              action={{ label: "Ver amigos", onPress: () => router.replace("/social") }}
             />
           )}
         </ScrollView>

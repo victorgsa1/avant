@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { Modal, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
-import { BarsIcon, FlameIcon, PeopleIcon } from "@/components/ui/icons";
+import { FlameIcon, HeartIcon, PeopleIcon } from "@/components/ui/icons";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { TextField } from "@/components/ui/TextField";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -92,8 +92,8 @@ export function UsernameSetupModal({ visible, currentUsername, onDone }: Usernam
               </AppText>
 
               <View style={{ marginTop: 20, gap: 14 }}>
-                <IntroItem icon={<BarsIcon color={colors.ember} />} title="Ranking">
-                  Veja como sua consistência se compara com a dos seus amigos na semana.
+                <IntroItem icon={<HeartIcon color={colors.ember} />} title="Atividade">
+                  Veja o resumo semanal dos seus amigos e curta o que eles estão conquistando.
                 </IntroItem>
                 <IntroItem icon={<PeopleIcon color={colors.ember} />} title="Amigos">
                   Encontre pessoas pelo @usuário e acompanhe quem caminha com você.
@@ -121,7 +121,7 @@ export function UsernameSetupModal({ visible, currentUsername, onDone }: Usernam
                 weight="medium"
                 style={{ marginTop: 9, fontSize: 13.5, lineHeight: 20, color: colors.textMuted }}
               >
-                Escolha seu @usuário. É o único dado seu que aparece para outras pessoas no ranking.
+                Escolha seu @usuário. É o único dado seu que aparece para outras pessoas no Social.
               </AppText>
 
               <View style={{ marginTop: 20 }}>

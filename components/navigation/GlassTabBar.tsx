@@ -7,13 +7,13 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { AppText } from "@/components/ui/AppText";
 import { Pressable } from "@/components/ui/Pressable";
-import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavRankingIcon } from "@/components/ui/icons";
+import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavSocialIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { tapHaptic } from "@/services/native/haptics";
 
 const TABS: { href: Href; icon: typeof NavHojeIcon; label: string }[] = [
   { href: "/", icon: NavHojeIcon, label: "Hoje" },
-  { href: "/ranking", icon: NavRankingIcon, label: "Ranking" },
+  { href: "/social", icon: NavSocialIcon, label: "Social" },
   { href: "/progress", icon: NavProgressIcon, label: "Progresso" },
   { href: "/profile", icon: NavProfileIcon, label: "Perfil" },
 ];

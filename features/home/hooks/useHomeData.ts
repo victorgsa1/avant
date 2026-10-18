@@ -5,6 +5,7 @@ import type {
   AdaptationProposal,
   DailyActionResponse,
   ProgressOverviewResponse,
+  SkipReasonCode,
   TodayResponse,
 } from "@/services/http/types";
 import type { WeekDay } from "@/components/ui/WeekStrip";
@@ -150,7 +151,7 @@ export function useHomeData() {
    * servidor daria a impressão errada se a chamada falhasse.
    */
   const skipTask = useCallback(
-    (id: string, reason?: string) => {
+    (id: string, reasonCode?: SkipReasonCode) => {
       if (!data || inFlight.current.has(id)) return;
 
       const action = data.today.actions.find((item) => item.id === id);
@@ -161,7 +162,7 @@ export function useHomeData() {
       setActionError(null);
 
       void todayApi
-        .skip(id, reason)
+        .skip(id, reasonCode)
         .then(() => refresh())
         .catch((error) => setActionError(userMessage(error)))
         .finally(() => {
@@ -175,11 +176,10 @@ export function useHomeData() {
   const [adaptationBusyId, setAdaptationBusyId] = useState<string | null>(null);
 
   /**
-   * Puxar para atualizar roda o motor de adaptação antes de recarregar.
+   * Puxar para atualizar pede ao motor para reavaliar antes de recarregar.
    *
-   * As regras são baratas (algumas queries) e a IA tem cooldown próprio no
-   * servidor, então isso não vira custo por refresh — mas faz o loop
-   * parecer vivo em vez de esperar o job semanal.
+   * O servidor só reavalia se algo aconteceu desde a última avaliação (o
+   * motor é dirigido por evento) e nunca gasta IA neste caminho.
    */
   const refreshWithEngine = useCallback(async () => {
     await adaptationsApi.evaluate().catch(() => undefined);
@@ -195,6 +195,22 @@ export function useHomeData() {
       const request = response === "apply" ? adaptationsApi.apply(id) : adaptationsApi.dismiss(id);
 
       void request
+        .then(() => refresh())
+        .catch((error) => setActionError(userMessage(error)))
+        .finally(() => setAdaptationBusyId(null));
+    },
+    [adaptationBusyId, refresh],
+  );
+
+  /** Resposta de um toque ao card "o que atrapalhou?". */
+  const answerFriction = useCallback(
+    (id: string, reasonCode: SkipReasonCode) => {
+      if (adaptationBusyId) return;
+      setAdaptationBusyId(id);
+      setActionError(null);
+
+      void adaptationsApi
+        .answerFriction(id, reasonCode)
         .then(() => refresh())
         .catch((error) => setActionError(userMessage(error)))
         .finally(() => setAdaptationBusyId(null));
@@ -274,6 +290,7 @@ export function useHomeData() {
     toggleTask,
     skipTask,
     respondToAdaptation,
+    answerFriction,
     adaptationBusyId,
     resumePausedPrimary,
     resumingPaused,

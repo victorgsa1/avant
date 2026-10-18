@@ -177,13 +177,14 @@ export function RestartIcon({ size = 14, color: colorProp }: IconProps) {
   );
 }
 
-export function HeartIcon({ size = 19, color: colorProp }: IconProps) {
+export function HeartIcon({ size = 19, color: colorProp, filled = false }: IconProps & { filled?: boolean }) {
   const { colors } = useTheme();
   const color = colorProp ?? colors.ember;
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
       <Path
         d="M10 17S2.6 12.6 2.6 7.6A3.9 3.9 0 0 1 10 5.7a3.9 3.9 0 0 1 7.4 1.9C17.4 12.6 10 17 10 17Z"
+        fill={filled ? color : "none"}
         stroke={color}
         strokeWidth={1.5}
         strokeLinejoin="round"
@@ -279,14 +280,15 @@ export function NavHojeIcon({ size = 18, color: colorProp }: IconProps) {
   );
 }
 
-export function NavRankingIcon({ size = 18, color: colorProp }: IconProps) {
+export function NavSocialIcon({ size = 18, color: colorProp }: IconProps) {
   const { colors } = useTheme();
   const color = colorProp ?? colors.onInverseMuted;
   return (
     <Svg width={size} height={size} viewBox="0 0 22 22" fill="none">
-      <Rect x={1.6} y={12.4} width={4.4} height={7.6} rx={1} fill={color} />
-      <Rect x={8.8} y={5.6} width={4.4} height={14.4} rx={1} fill={color} />
-      <Rect x={16} y={9.6} width={4.4} height={10.4} rx={1} fill={color} />
+      <Circle cx={8} cy={6.6} r={3.4} fill={color} />
+      <Path d="M1.6 20.2a6.4 6.4 0 0 1 12.8 0Z" fill={color} />
+      <Circle cx={16.6} cy={8.4} r={2.6} fill={color} opacity={0.55} />
+      <Path d="M13.2 20.2a5.2 5.2 0 0 1 9.2-3.3 5.2 5.2 0 0 1 .8 3.3Z" fill={color} opacity={0.55} />
     </Svg>
   );
 }

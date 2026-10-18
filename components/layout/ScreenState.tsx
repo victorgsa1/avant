@@ -1,4 +1,5 @@
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Image, View } from "react-native";
+import type { ImageSourcePropType } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -59,14 +60,19 @@ export function EmptyState({
   title,
   description,
   action,
+  image,
 }: {
   title: string;
   description?: string;
   action?: { label: string; onPress: () => void };
+  image?: ImageSourcePropType;
 }) {
   const { colors } = useTheme();
   return (
     <View className="items-center" style={{ paddingVertical: 34, paddingHorizontal: 26 }}>
+      {image ? (
+        <Image source={image} style={{ width: 88, height: 88, marginBottom: 14 }} resizeMode="contain" />
+      ) : null}
       <AppText
         family="archivo"
         weight="extraBold"

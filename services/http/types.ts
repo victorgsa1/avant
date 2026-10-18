@@ -276,7 +276,7 @@ export interface ProgressOverviewResponse {
 }
 
 // ----------------------------------------------------------------------
-// Social: amigos, ranking, bloqueios
+// Social: amigos, atividade, bloqueios
 // ----------------------------------------------------------------------
 
 export interface PublicUser {
@@ -335,6 +335,23 @@ export interface RankingResponse {
   me: RankingRow | null;
   next: { name: string; username: string; xpDelta: number } | null;
   rows: RankingRow[];
+}
+
+export interface SocialFeedItem {
+  id: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+  title: string;
+  body: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  likeCount: number;
+  likedByMe: boolean;
+  createdAt: string;
+}
+
+export interface ToggleLikeResult {
+  liked: boolean;
+  likeCount: number;
 }
 
 export interface BlockedUserResponse {
@@ -567,12 +584,32 @@ export type AdaptationType =
   | "CHANGE_VARIANT"
   | "RECOVERY_PLAN"
   | "CHANGE_REMINDER"
-  | "CHANGE_FREQUENCY";
+  | "CHANGE_FREQUENCY"
+  | "ASK_FRICTION"
+  | "SEND_SUPPORT";
+
+/** O que atrapalhou, em um toque. Cada código aponta para uma dimensão MOAB no servidor. */
+export type SkipReasonCode =
+  | "NO_TIME"
+  | "LOW_ENERGY"
+  | "NO_ACCESS"
+  | "TOO_HARD"
+  | "FORGOT"
+  | "NOT_PRIORITY"
+  | "OTHER"
+  | "UNKNOWN";
+
+export interface FrictionOption {
+  code: SkipReasonCode;
+  label: string;
+}
 
 export interface AdaptationProposal {
   id: string;
   type: AdaptationType;
   strategy: string | null;
+  /** PLAN_CHANGE: aplicar/manter · QUESTION: opções de um toque · SUPPORT: apoio sem mudar o plano. */
+  kind?: "PLAN_CHANGE" | "QUESTION" | "SUPPORT";
   title: string;
   message: string;
   habitId: string | null;
@@ -584,6 +621,29 @@ export interface AdaptationProposal {
   createdAt: string;
   expiresAt: string | null;
   applyLabel: string;
+  dismissLabel?: string;
+  options?: FrictionOption[] | null;
+}
+
+/** Uma coisa que o Avant acredita saber — com a evidência que a sustenta. */
+export interface LearnedMemory {
+  id: string;
+  statement: string;
+  kind: "EXPLICIT_FACT" | "OBSERVED_PATTERN" | "MODEL_HYPOTHESIS" | "USER_CONFIRMED_PATTERN" | "SUCCESSFUL_STRATEGY";
+  dimension: string;
+  confidence: number;
+  evidenceCount: number;
+  status: "ACTIVE" | "HYPOTHESIS";
+  confirmed: boolean;
+  habitId: string | null;
+  habitTitle: string | null;
+  lastObservedAt: string | null;
+}
+
+export interface EnginePrivacy {
+  adaptivePersonalization: boolean;
+  aiProcessing: boolean;
+  policyVersion: string;
 }
 
 export interface InsightResponse {

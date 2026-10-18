@@ -3,12 +3,12 @@ import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
-import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavRankingIcon } from "@/components/ui/icons";
+import { NavHojeIcon, NavProfileIcon, NavProgressIcon, NavSocialIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
 const TABS: { href: Href; icon: typeof NavHojeIcon; label: string }[] = [
   { href: "/", icon: NavHojeIcon, label: "Hoje" },
-  { href: "/ranking", icon: NavRankingIcon, label: "Ranking" },
+  { href: "/social", icon: NavSocialIcon, label: "Social" },
   { href: "/progress", icon: NavProgressIcon, label: "Progresso" },
   { href: "/profile", icon: NavProfileIcon, label: "Perfil" },
 ];

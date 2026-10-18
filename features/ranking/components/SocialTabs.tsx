@@ -5,7 +5,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import type { SocialTab } from "../types";
 
 const TABS: { key: SocialTab; label: string }[] = [
-  { key: "ranking", label: "Ranking" },
+  { key: "atividade", label: "Atividade" },
   { key: "amigos", label: "Amigos" },
   { key: "competicoes", label: "Competições" },
 ];

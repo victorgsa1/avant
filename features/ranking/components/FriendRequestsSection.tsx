@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -27,9 +27,16 @@ export function FriendRequestsSection({
     <View className="px-6" style={{ paddingTop: 24 }}>
       {incoming.length > 0 ? (
         <>
-          <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
-            Solicitações
-          </AppText>
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <Image
+              source={require("../../../assets/social/pedidos-amizade.png")}
+              style={{ width: 22, height: 22 }}
+              resizeMode="contain"
+            />
+            <AppText family="archivo" weight="extraBold" style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}>
+              Solicitações
+            </AppText>
+          </View>
 
           {incoming.map((request) => (
             <View

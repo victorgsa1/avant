@@ -7,43 +7,45 @@ import { ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
+import { ActivityTabContent } from "@/features/ranking/components/ActivityTabContent";
 import { CompetitionsTabContent } from "@/features/ranking/components/CompetitionsTabContent";
 import { FriendsTabContent } from "@/features/ranking/components/FriendsTabContent";
-import { RankingTabContent } from "@/features/ranking/components/RankingTabContent";
 import { SocialHeader } from "@/features/ranking/components/SocialHeader";
 import { SocialTabs } from "@/features/ranking/components/SocialTabs";
 import { UsernameSetupModal } from "@/features/ranking/components/UsernameSetupModal";
 import { useCompetitions } from "@/features/ranking/hooks/useCompetitions";
-import { useRankingData } from "@/features/ranking/hooks/useRankingData";
+import { useSocialData } from "@/features/ranking/hooks/useSocialData";
 import type { SocialTab } from "@/features/ranking/types";
 import { uiPreferences } from "@/services/storage/preferencesStorage";
 
 const SUBTITLES: Record<SocialTab, string> = {
-  ranking: "Veja como sua consistência se compara esta semana.",
+  atividade: "O que seus amigos estão conquistando.",
   amigos: "Quem caminha junto com você.",
   competicoes: "Desafios que vocês estão fazendo juntos.",
 };
 
-export default function RankingScreen() {
+export default function SocialScreen() {
   const { colors } = useTheme();
   const { user, refreshUser } = useSession();
-  const [activeTab, setActiveTab] = useState<SocialTab>("ranking");
+  const [activeTab, setActiveTab] = useState<SocialTab>("atividade");
   const [askUsername, setAskUsername] = useState(false);
 
   const {
-    view,
+    feed,
+    rawFriends,
+    incomingRequests,
+    outgoingRequests,
     loading,
     refreshing,
     error,
     refresh,
-    period,
-    setPeriod,
+    toggleLike,
     acceptRequest,
     declineRequest,
     removeFriend,
     actionError,
     busy,
-  } = useRankingData();
+  } = useSocialData();
 
   const competitions = useCompetitions();
 
@@ -66,7 +68,7 @@ export default function RankingScreen() {
     await refresh();
   }, [refresh, refreshUser, user]);
 
-  if (loading && !view) {
+  if (loading) {
     return (
       <Screen>
         <SocialHeader subtitle={SUBTITLES[activeTab]} hasNotification={false} />
@@ -75,7 +77,7 @@ export default function RankingScreen() {
     );
   }
 
-  if (error && !view) {
+  if (error) {
     return (
       <Screen>
         <SocialHeader subtitle={SUBTITLES[activeTab]} hasNotification={false} />
@@ -83,8 +85,6 @@ export default function RankingScreen() {
       </Screen>
     );
   }
-
-  if (!view) return null;
 
   return (
     <Screen>
@@ -109,29 +109,18 @@ export default function RankingScreen() {
           />
         }
       >
-        <SocialHeader subtitle={SUBTITLES[activeTab]} hasNotification={view.incomingRequests.length > 0} />
+        <SocialHeader subtitle={SUBTITLES[activeTab]} hasNotification={incomingRequests.length > 0} />
         <SocialTabs active={activeTab} onChange={setActiveTab} />
 
-        {activeTab === "ranking" ? (
-          <RankingTabContent
-            period={period}
-            onChangePeriod={setPeriod}
-            currentUserRank={view.currentUserRank}
-            currentUserPct={view.currentUserPct}
-            currentUserPositionsGained={view.currentUserPositionsGained}
-            podium={view.podium}
-            rankRows={view.rankRows}
-            nextRival={view.nextRival}
-            isAlone={view.totalParticipants <= 1}
-            onPressAddFriends={() => setActiveTab("amigos")}
-          />
+        {activeTab === "atividade" ? (
+          <ActivityTabContent items={feed} onToggleLike={(id) => void toggleLike(id)} />
         ) : null}
 
         {activeTab === "amigos" ? (
           <FriendsTabContent
-            friends={view.rawFriends}
-            incoming={view.incomingRequests}
-            outgoing={view.outgoingRequests}
+            friends={rawFriends}
+            incoming={incomingRequests}
+            outgoing={outgoingRequests}
             busy={busy}
             actionError={actionError}
             onAccept={(id) => void acceptRequest(id)}

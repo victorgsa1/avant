@@ -42,7 +42,7 @@ function resolveRoute(route: string | undefined): string | null {
   if (!route) return null;
   if (route === "/today") return "/";
   if (route === "/(tabs)/progress") return "/progress";
-  if (route === "/(tabs)/ranking") return "/ranking";
+  if (route === "/(tabs)/social") return "/social";
   if (/^\/chat\/[A-Za-z0-9_-]+$/.test(route)) return route;
   if (route === "/chat") return "/chat";
   return "/";

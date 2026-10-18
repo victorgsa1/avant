@@ -25,6 +25,8 @@ type PrimaryActionCardProps = {
   onSelectVariant: (type: ActionVariantType) => void;
   onComplete: () => void;
   onAdjust: () => void;
+  /** A saída do dia ruim: pular dizendo o que atrapalhou. */
+  onSkip?: () => void;
 };
 
 function variantLabel(variant: PrimaryVariantOption): string {
@@ -47,6 +49,7 @@ export function PrimaryActionCard({
   onSelectVariant,
   onComplete,
   onAdjust,
+  onSkip,
 }: PrimaryActionCardProps) {
   const { colors } = useTheme();
   const art = artFor(iconKey, title);
@@ -157,15 +160,28 @@ export function PrimaryActionCard({
           </AppText>
         </Pressable>
 
-        <Pressable onPress={onAdjust} className="items-center" style={{ paddingTop: 16, paddingBottom: 2 }}>
-          <AppText
-            family="manrope"
-            weight="semiBold"
-            style={{ fontSize: 13.5, color: colors.onPaperMuted, textDecorationLine: "underline" }}
-          >
-            Ajustar horário
-          </AppText>
-        </Pressable>
+        <View className="flex-row items-center justify-center" style={{ gap: 22, paddingTop: 16, paddingBottom: 2 }}>
+          <Pressable onPress={onAdjust}>
+            <AppText
+              family="manrope"
+              weight="semiBold"
+              style={{ fontSize: 13.5, color: colors.onPaperMuted, textDecorationLine: "underline" }}
+            >
+              Ajustar horário
+            </AppText>
+          </Pressable>
+          {onSkip ? (
+            <Pressable onPress={onSkip}>
+              <AppText
+                family="manrope"
+                weight="semiBold"
+                style={{ fontSize: 13.5, color: colors.onPaperMuted, textDecorationLine: "underline" }}
+              >
+                Hoje não vai dar
+              </AppText>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
     </View>
   );

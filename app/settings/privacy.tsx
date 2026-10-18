@@ -73,8 +73,19 @@ export default function PrivacyScreen() {
         </SettingsSection>
 
         <SettingsSection
+          title="MOTOR ADAPTATIVO"
+          footer="Veja, confirme ou apague o que o Avant percebeu sobre sua rotina — e decida se ele pode aprender."
+        >
+          <SettingsRow
+            label="O que o Avant aprendeu"
+            last
+            onPress={() => router.push("/settings/learned")}
+          />
+        </SettingsSection>
+
+        <SettingsSection
           title="BLOQUEADOS"
-          footer="Pessoas bloqueadas não te encontram, não te mandam mensagem e somem do seu ranking."
+          footer="Pessoas bloqueadas não te encontram, não te mandam mensagem e somem da sua lista de amigos."
         >
           {(blocks.data ?? []).map((blocked, index, list) => (
             <SettingsRow

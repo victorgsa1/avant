@@ -78,7 +78,7 @@ export default function DataScreen() {
             label="Comportamento"
             description="Conclusões, faltas, horários e retomadas"
           />
-          <SettingsRow label="Social" description="Amizades, ranking e conversas" last />
+          <SettingsRow label="Social" description="Amizades, atividade e conversas" last />
         </SettingsSection>
 
         <View style={{ paddingHorizontal: 20, paddingTop: 28, gap: 14 }}>

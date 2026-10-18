@@ -11,7 +11,7 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 import { buttonGlow } from "@/constants/glow";
 import { DevResetOnboardingButton } from "@/features/onboarding/components/DevResetOnboardingButton";
 
-const ROUTES = ["/", "/ranking", "/progress", "/profile"];
+const ROUTES = ["/", "/social", "/progress", "/profile"];
 
 // `appOwnership` is deprecated in favor of `executionEnvironment`, but
 // `executionEnvironment` lumps Expo Go and dev-client builds into the same
@@ -83,7 +83,7 @@ export default function TabsLayout() {
 
       <TabList style={{ display: "none" }}>
         <TabTrigger name="index" href="/" />
-        <TabTrigger name="ranking" href="/ranking" />
+        <TabTrigger name="social" href="/social" />
         <TabTrigger name="progress" href="/progress" />
         <TabTrigger name="profile" href="/profile" />
       </TabList>

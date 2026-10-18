@@ -3,25 +3,39 @@ import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { AdaptiveIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import type { AdaptationProposal } from "@/services/http/types";
+import type { AdaptationProposal, SkipReasonCode } from "@/services/http/types";
+import { FrictionChips } from "./SkipReasonSheet";
 
 type AdaptationCardProps = {
   proposal: AdaptationProposal;
   busy?: boolean;
   onApply: (id: string) => void;
   onDismiss: (id: string) => void;
+  /** Resposta de um toque quando a proposta é uma pergunta. */
+  onAnswer?: (id: string, code: SkipReasonCode) => void;
+  /** "Por que isso?" — abre o que o Avant aprendeu. */
+  onOpenLearned?: () => void;
 };
 
 /**
  * O card "aprendi algo sobre você".
  *
- * É aqui que o motor adaptativo aparece — e é o único lugar onde ele
- * aparece. Não há caixa de conversa: o Avant observou o comportamento,
- * chegou a uma proposta e devolve a decisão para a pessoa. Manter o plano
- * é sempre uma resposta legítima, por isso os dois botões têm o mesmo peso.
+ * É aqui que o motor adaptativo aparece. Não há caixa de conversa: o Avant
+ * observou o comportamento, chegou a uma proposta e devolve a decisão para a
+ * pessoa. Manter o plano é sempre uma resposta legítima, por isso os dois
+ * botões têm o mesmo peso. Quando o motor não sabe o que atrapalhou, o card
+ * vira uma pergunta de um toque em vez de um palpite.
  */
-export function AdaptationCard({ proposal, busy = false, onApply, onDismiss }: AdaptationCardProps) {
+export function AdaptationCard({
+  proposal,
+  busy = false,
+  onApply,
+  onDismiss,
+  onAnswer,
+  onOpenLearned,
+}: AdaptationCardProps) {
   const { colors } = useTheme();
+  const isQuestion = proposal.kind === "QUESTION" && onAnswer != null;
 
   return (
     <View className="px-5" style={{ marginTop: 18 }}>
@@ -52,52 +66,78 @@ export function AdaptationCard({ proposal, busy = false, onApply, onDismiss }: A
           >
             {proposal.message}
           </AppText>
-        </View>
-
-        <View className="flex-row items-center" style={{ gap: 8 }}>
-          <Pressable
-            onPress={() => onDismiss(proposal.id)}
-            disabled={busy}
-            className="items-center justify-center rounded-full"
-            style={{
-              paddingVertical: 11,
-              paddingHorizontal: 18,
-              borderWidth: 1.3,
-              borderColor: colors.lineStrong,
-              opacity: busy ? 0.5 : 1,
-            }}
-          >
-            <AppText family="archivo" weight="bold" style={{ fontSize: 13.5, color: colors.textMuted }}>
-              Manter
-            </AppText>
-          </Pressable>
-
-          <Pressable
-            onPress={() => onApply(proposal.id)}
-            disabled={busy}
-            className="items-center justify-center rounded-full"
-            style={{
-              paddingVertical: 11,
-              paddingHorizontal: 18,
-              borderWidth: 1.3,
-              borderColor: colors.ember,
-              opacity: busy ? 0.5 : 1,
-            }}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={colors.ember} />
-            ) : (
+          {onOpenLearned && !isQuestion ? (
+            <Pressable onPress={onOpenLearned} style={{ marginTop: 6, alignSelf: "flex-start" }}>
               <AppText
-                family="archivo"
-                weight="bold"
-                numberOfLines={1}
-                style={{ fontSize: 13.5, color: colors.ember }}
+                family="manrope"
+                weight="semiBold"
+                style={{ fontSize: 12, color: colors.textFaint, textDecorationLine: "underline" }}
               >
-                {proposal.applyLabel}
+                O que o Avant aprendeu
               </AppText>
-            )}
-          </Pressable>
+            </Pressable>
+          ) : null}
         </View>
+
+        {isQuestion ? (
+          <View style={{ flexBasis: "100%", gap: 10 }}>
+            <FrictionChips
+              options={proposal.options ?? undefined}
+              disabled={busy}
+              onSelect={(code) => onAnswer?.(proposal.id, code)}
+            />
+            <Pressable onPress={() => onDismiss(proposal.id)} disabled={busy} style={{ alignSelf: "flex-start" }}>
+              <AppText family="manrope" weight="semiBold" style={{ fontSize: 12.5, color: colors.textMuted }}>
+                {proposal.dismissLabel ?? "Agora não"}
+              </AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <Pressable
+              onPress={() => onDismiss(proposal.id)}
+              disabled={busy}
+              className="items-center justify-center rounded-full"
+              style={{
+                paddingVertical: 11,
+                paddingHorizontal: 18,
+                borderWidth: 1.3,
+                borderColor: colors.lineStrong,
+                opacity: busy ? 0.5 : 1,
+              }}
+            >
+              <AppText family="archivo" weight="bold" style={{ fontSize: 13.5, color: colors.textMuted }}>
+                {proposal.dismissLabel ?? "Manter"}
+              </AppText>
+            </Pressable>
+
+            <Pressable
+              onPress={() => onApply(proposal.id)}
+              disabled={busy}
+              className="items-center justify-center rounded-full"
+              style={{
+                paddingVertical: 11,
+                paddingHorizontal: 18,
+                borderWidth: 1.3,
+                borderColor: colors.ember,
+                opacity: busy ? 0.5 : 1,
+              }}
+            >
+              {busy ? (
+                <ActivityIndicator size="small" color={colors.ember} />
+              ) : (
+                <AppText
+                  family="archivo"
+                  weight="bold"
+                  numberOfLines={1}
+                  style={{ fontSize: 13.5, color: colors.ember }}
+                >
+                  {proposal.applyLabel}
+                </AppText>
+              )}
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );

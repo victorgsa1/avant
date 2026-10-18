@@ -12,12 +12,15 @@ import type {
   CreateHabitInput,
   CreateReminderInput,
   DailyActionResponse,
+  EnginePrivacy,
+  FrictionOption,
   FriendRequestsResponse,
   FriendResponse,
   GeneratedPlanResponse,
   HabitResponse,
   IdentityResponse,
   InsightResponse,
+  LearnedMemory,
   MeResponse,
   MessagePage,
   MessageResponse,
@@ -33,12 +36,13 @@ import type {
   PlanAreaKey,
   PlanPreviewResponse,
   PublicUser,
-  RankingPeriod,
-  RankingResponse,
   ReminderResponse,
   SendFriendRequestResult,
   SessionResponse,
+  SkipReasonCode,
+  SocialFeedItem,
   TodayResponse,
+  ToggleLikeResult,
   UserSearchResult,
 } from "../http/types";
 
@@ -115,8 +119,9 @@ export const todayApi = {
       timeoutMs: 120_000,
     }),
 
-  skip: (actionId: string, reason?: string) =>
-    http.post<DailyActionResponse>(`/daily-actions/${actionId}/skip`, { reason }),
+  /** O motivo em um toque é o sinal que o motor adaptativo lê; o texto só vale para "Outra coisa". */
+  skip: (actionId: string, reasonCode?: SkipReasonCode, reason?: string) =>
+    http.post<DailyActionResponse>(`/daily-actions/${actionId}/skip`, { reasonCode, reason }),
 };
 
 export const progressApi = {
@@ -141,9 +146,10 @@ export const friendsApi = {
   remove: (userId: string) => http.delete<void>(`/friends/${userId}`),
 };
 
-export const rankingApi = {
-  get: (period: RankingPeriod = "week") =>
-    http.get<RankingResponse>("/ranking", { query: { period } }),
+export const socialApi = {
+  feed: () => http.get<SocialFeedItem[]>("/social/feed"),
+  toggleLike: (insightId: string) =>
+    http.post<ToggleLikeResult>(`/social/feed/${insightId}/like`),
 };
 
 export const blocksApi = {
@@ -248,6 +254,21 @@ export const adaptationsApi = {
   evaluate: () => http.post<AdaptationProposal[]>("/adaptations/evaluate"),
   apply: (id: string) => http.post<AdaptationProposal>(`/adaptations/${id}/apply`),
   dismiss: (id: string) => http.post<void>(`/adaptations/${id}/dismiss`),
+  /** Resposta ao card "o que atrapalhou?". */
+  answerFriction: (id: string, reasonCode: SkipReasonCode) =>
+    http.post<void>(`/adaptations/${id}/friction`, { reasonCode }),
+};
+
+/** O que o motor sabe sobre a pessoa — para ver, confirmar, corrigir e apagar. */
+export const engineApi = {
+  memory: () => http.get<LearnedMemory[]>("/engine/memory"),
+  confirmMemory: (id: string) => http.post<void>(`/engine/memory/${id}/confirm`),
+  rejectMemory: (id: string) => http.post<void>(`/engine/memory/${id}/reject`),
+  wipeMemory: () => http.delete<void>("/engine/memory"),
+  frictionOptions: () => http.get<FrictionOption[]>("/engine/friction-options"),
+  privacy: () => http.get<EnginePrivacy>("/engine/privacy"),
+  updatePrivacy: (input: Partial<Pick<EnginePrivacy, "adaptivePersonalization" | "aiProcessing">>) =>
+    http.put<EnginePrivacy>("/engine/privacy", input),
 };
 
 export const insightsApi = {

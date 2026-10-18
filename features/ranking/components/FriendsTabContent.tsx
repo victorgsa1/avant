@@ -119,6 +119,7 @@ export function FriendsTabContent({
       <View className="px-6" style={{ paddingTop: 8 }}>
         {friends.length === 0 ? (
           <EmptyState
+            image={require("../../../assets/social/baloes-conversa.png")}
             title="Nenhum amigo por aqui ainda"
             description="Busque pelo @usuário de alguém para começar a comparar consistência."
           />

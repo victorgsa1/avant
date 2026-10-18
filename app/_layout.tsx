@@ -94,6 +94,7 @@ function RootNavigator() {
           <Stack.Screen name="settings/areas" />
           <Stack.Screen name="settings/identity" />
           <Stack.Screen name="settings/habits" />
+          <Stack.Screen name="settings/learned" />
         </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>

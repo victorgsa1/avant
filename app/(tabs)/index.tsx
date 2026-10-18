@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Platform, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
@@ -13,8 +13,9 @@ import { HomeGreeting } from "@/features/home/components/HomeGreeting";
 import { HomeTopBar } from "@/features/home/components/HomeTopBar";
 import { PrimaryActionCard } from "@/features/home/components/PrimaryActionCard";
 import { PrimaryDoneCard } from "@/features/home/components/PrimaryDoneCard";
+import { SkipReasonSheet } from "@/features/home/components/SkipReasonSheet";
 import { useHomeData } from "@/features/home/hooks/useHomeData";
-import type { ActionVariantType } from "@/services/http/types";
+import type { ActionVariantType, SkipReasonCode } from "@/services/http/types";
 
 function StatusCard({
   title,
@@ -51,6 +52,7 @@ export default function HojeScreen() {
     toggleTask,
     skipTask,
     respondToAdaptation,
+    answerFriction,
     adaptationBusyId,
     resumePausedPrimary,
     resumingPaused,
@@ -62,18 +64,14 @@ export default function HojeScreen() {
   const [chosenVariant, setChosenVariant] = useState<ActionVariantType | null>(null);
 
   /**
-   * Pular custa uma confirmação de propósito: é uma decisão sobre o
-   * próprio dia, não um toque acidental na lista.
+   * Pular abre "o que atrapalhou?" — é uma decisão sobre o próprio dia, não
+   * um toque acidental, e o motivo em um toque é o que permite ao Avant
+   * ajustar certo (horário x tamanho x prioridade) sem adivinhar.
    */
-  const confirmSkip = (id: string) => {
-    if (Platform.OS === "web") {
-      skipTask(id);
-      return;
-    }
-    Alert.alert("Pular hoje?", "Amanhã ela volta normalmente.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Pular hoje", style: "destructive", onPress: () => skipTask(id) },
-    ]);
+  const [skipping, setSkipping] = useState<{ id: string; title: string } | null>(null);
+  const finishSkip = (reasonCode?: SkipReasonCode) => {
+    if (skipping) skipTask(skipping.id, reasonCode);
+    setSkipping(null);
   };
 
   const firstName = user?.name?.split(" ")[0] ?? "";
@@ -177,6 +175,7 @@ export default function HojeScreen() {
               })
             }
             onAdjust={() => router.push("/settings/habits")}
+            onSkip={() => setSkipping({ id: primary.id, title: primary.title })}
           />
         ) : primary && primary.status === "COMPLETED" ? (
           <PrimaryDoneCard
@@ -209,6 +208,8 @@ export default function HojeScreen() {
             busy={adaptationBusyId === proposal.id}
             onApply={(id) => respondToAdaptation(id, "apply")}
             onDismiss={(id) => respondToAdaptation(id, "dismiss")}
+            onAnswer={answerFriction}
+            onOpenLearned={() => router.push("/settings/learned")}
           />
         ))}
 
@@ -218,9 +219,19 @@ export default function HojeScreen() {
             doneCount={view.doneCount}
             totalTasks={view.totalTasks}
             onToggle={toggleTask}
-            onSkip={confirmSkip}
+            onSkip={(id) =>
+              setSkipping({ id, title: view.tasks.find((task) => task.id === id)?.label ?? "" })
+            }
           />
         ) : null}
+
+        <SkipReasonSheet
+          visible={skipping != null}
+          actionTitle={skipping?.title ?? null}
+          onSelect={(code) => finishSkip(code)}
+          onSkipWithoutReason={() => finishSkip()}
+          onClose={() => setSkipping(null)}
+        />
 
         {actionError ? (
           <AppText

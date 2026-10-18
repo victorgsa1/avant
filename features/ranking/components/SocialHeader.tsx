@@ -38,7 +38,7 @@ export function SocialHeader({ subtitle, hasNotification = true }: SocialHeaderP
             weight="black"
             style={{ fontSize: 34, lineHeight: 36, letterSpacing: -1.4, color: colors.text }}
           >
-            Ranking
+            Social
           </AppText>
           <AppText
             family="manrope"
