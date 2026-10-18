@@ -11,7 +11,7 @@ type ScreenProps = {
 // so decorative art (rings, blobs, header stripes) can extend behind the
 // status bar. Headers that carry actual readable content are responsible
 // for their own `useSafeAreaInsets().top` padding — see HomeTopBar,
-// ProgressHeader, ProfileHeader, SocialHeader.
+// ProfileHeader, SocialHeader.
 export function Screen({ children }: ScreenProps) {
   const { colors, isDark } = useTheme();
 

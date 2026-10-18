@@ -1,22 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
-import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
+import { ActivityIndicator, View } from "react-native";
+import { EmptyState } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
 import { Pressable } from "@/components/ui/Pressable";
-import { OptionPills, SettingsRow, SettingsSection } from "@/components/ui/SettingsRow";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import {
+  SettingsBlock,
+  SettingsGroup,
+  SettingsItem,
+  SettingsMessage,
+  SettingsPill,
+  SettingsSegmented,
+} from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { habitsApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
-import type { HabitResponse } from "@/services/http/types";
+import type { HabitResponse, HabitStatus } from "@/services/http/types";
 import { confirmAction } from "@/services/native/confirm";
 
+const GROUP_TITLE: Record<HabitStatus, string> = {
+  ACTIVE: "No seu dia",
+  PAUSED: "Pausados",
+  ARCHIVED: "Arquivados",
+};
+
+const GROUP_FOOTER: Record<HabitStatus, string> = {
+  ACTIVE: "Pausar tira o hábito do dia até você retomar. Arquivar encerra — o histórico continua no Progresso.",
+  PAUSED: "Pausados não aparecem no seu dia nem contam no progresso enquanto estiverem parados.",
+  ARCHIVED: "Nada é apagado: retomar devolve o hábito ao plano com o histórico de antes.",
+};
+
+const EMPTY: Record<HabitStatus, string> = {
+  ACTIVE: "Crie um movimento pelo botão + na barra de navegação.",
+  PAUSED: "Quando a vida apertar, pause um hábito em vez de largar. Ele espera aqui.",
+  ARCHIVED: "Hábitos encerrados ficam guardados aqui.",
+};
+
 function frequencyLabel(habit: HabitResponse): string {
-  if (habit.frequency === "DAILY") return "Todo dia";
-  return `${habit.weeklyTarget}x por semana`;
+  const frequency = habit.frequency === "DAILY" ? "Todo dia" : `${habit.weeklyTarget}x por semana`;
+  return habit.role === "PRIMARY" ? `Principal · ${frequency}` : frequency;
 }
 
 /**
@@ -28,7 +51,7 @@ function frequencyLabel(habit: HabitResponse): string {
  */
 export default function HabitsScreen() {
   const { colors } = useTheme();
-  const [status, setStatus] = useState<"ACTIVE" | "PAUSED" | "ARCHIVED">("ACTIVE");
+  const [status, setStatus] = useState<HabitStatus>("ACTIVE");
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -37,14 +60,31 @@ export default function HabitsScreen() {
   const [justPaused, setJustPaused] = useState<HabitResponse | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // A resposta leva junto a aba que pediu: enquanto a nova lista chega, a
+  // anterior não aparece embaixo do título errado.
   const habits = useAsyncResource(
-    useCallback(() => habitsApi.list(status), [status]),
+    useCallback(async () => ({ status, items: await habitsApi.list(status) }), [status]),
   );
   const paused = useAsyncResource(useCallback(() => habitsApi.list("PAUSED"), []));
 
-  useEffect(() => () => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-  }, []);
+  // O recurso só busca sozinho na montagem e no foco: trocar a aba pede a
+  // lista nova.
+  const { reload } = habits;
+  const firstStatus = useRef(true);
+  useEffect(() => {
+    if (firstStatus.current) {
+      firstStatus.current = false;
+      return;
+    }
+    void reload();
+  }, [status, reload]);
+
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
 
   const run = (id: string, action: () => Promise<unknown>, onDone?: () => void) => {
     setBusyId(id);
@@ -69,8 +109,8 @@ export default function HabitsScreen() {
     confirmAction({
       title: `Pausar "${habit.title}"?`,
       message: isPrimary
-        ? "É a sua principal: seu dia fica sem compromisso até você retomar. Ela fica na aba Pausados."
-        : "Ele sai do seu dia até você retomar. Fica na aba Pausados.",
+        ? "É a sua principal: seu dia fica sem compromisso até você retomar. Ela fica em Pausados."
+        : "Ele sai do seu dia até você retomar. Fica em Pausados.",
       confirmLabel: "Pausar",
       onConfirm: () => run(habit.id, () => habitsApi.pause(habit.id), () => showPausedNotice(habit)),
     });
@@ -95,123 +135,92 @@ export default function HabitsScreen() {
   };
 
   const pausedCount = paused.data?.length ?? 0;
+  const list = habits.data?.status === status ? habits.data.items : null;
 
   return (
-    <Screen>
-      <PageHeader
-        title="Seus hábitos"
-        subtitle="Pausar, retomar ou arquivar"
-        onBack={() => router.back()}
-      />
+    <SettingsPage
+      title="Seus hábitos"
+      subtitle="Pausar, retomar e arquivar"
+      refreshing={habits.refreshing}
+      onRefresh={() => void Promise.all([habits.refresh(), paused.refresh()])}
+    >
+      <SettingsGroup>
+        <SettingsSegmented
+          options={[
+            { value: "ACTIVE", label: "Ativos" },
+            { value: "PAUSED", label: pausedCount > 0 ? `Pausados (${pausedCount})` : "Pausados" },
+            { value: "ARCHIVED", label: "Arquivados" },
+          ]}
+          value={status}
+          onChange={setStatus}
+        />
+      </SettingsGroup>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 80 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={habits.refreshing}
-            onRefresh={() => void habits.refresh()}
-            tintColor={colors.ember}
-          />
-        }
-      >
-        <SettingsSection>
-          <OptionPills
-            options={[
-              { value: "ACTIVE", label: "Ativos" },
-              { value: "PAUSED", label: pausedCount > 0 ? `Pausados (${pausedCount})` : "Pausados" },
-              { value: "ARCHIVED", label: "Arquivados" },
-            ]}
-            value={status}
-            onChange={setStatus}
-          />
-        </SettingsSection>
-
-        {justPaused ? (
-          <View
-            className="flex-row items-center rounded-[18px]"
-            style={{
-              marginTop: 12,
-              marginHorizontal: 20,
-              gap: 12,
-              paddingVertical: 13,
-              paddingHorizontal: 16,
-              backgroundColor: colors.emberWash,
-            }}
-          >
-            <AppText
-              family="manrope"
-              weight="semiBold"
-              style={{ flex: 1, fontSize: 13, lineHeight: 19, color: colors.emberDeep }}
-            >
-              &quot;{justPaused.title}&quot; foi pausado. Está na aba Pausados.
-            </AppText>
-            <Pressable onPress={undoPause} hitSlop={8} accessibilityRole="button">
-              <AppText family="archivo" weight="extraBold" style={{ fontSize: 13.5, color: colors.emberInk }}>
-                Desfazer
-              </AppText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {habits.loading && !habits.data ? <ScreenLoading /> : null}
-        {habits.error && !habits.data ? (
-          <ScreenError message={habits.error} onRetry={() => void habits.refresh()} />
-        ) : null}
-
-        {habits.data?.length === 0 ? (
-          <EmptyState
-            title="Nada por aqui"
-            description={
-              status === "ACTIVE"
-                ? "Crie um movimento pelo botão + na barra de navegação."
-                : "Nenhum hábito neste estado."
-            }
-          />
-        ) : null}
-
-        {(habits.data ?? []).map((habit) => (
-          <SettingsSection key={habit.id}>
-            <SettingsRow label={habit.title} description={frequencyLabel(habit)} />
-
-            {habit.status === "ACTIVE" ? (
-              <SettingsRow
-                label="Pausar"
-                description="Some do dia até você retomar."
-                disabled={busyId === habit.id}
-                onPress={() => pause(habit)}
-              />
-            ) : (
-              <SettingsRow
-                label="Retomar"
-                description="Volta a entrar no plano do dia."
-                disabled={busyId === habit.id}
-                onPress={() => run(habit.id, () => habitsApi.resume(habit.id))}
-              />
-            )}
-
-            {habit.status !== "ARCHIVED" ? (
-              <SettingsRow
-                label="Arquivar"
-                destructive
-                last
-                disabled={busyId === habit.id}
-                onPress={() => archive(habit)}
-              />
-            ) : null}
-          </SettingsSection>
-        ))}
-
-        {error ? (
+      {justPaused ? (
+        <View
+          className="flex-row items-center rounded-[18px]"
+          style={{
+            marginTop: 12,
+            marginHorizontal: 16,
+            gap: 12,
+            paddingVertical: 13,
+            paddingHorizontal: 16,
+            backgroundColor: colors.emberWash,
+          }}
+        >
           <AppText
             family="manrope"
-            weight="medium"
-            style={{ marginTop: 14, paddingHorizontal: 24, fontSize: 12.5, color: colors.danger }}
+            weight="semiBold"
+            style={{ flex: 1, fontSize: 13, lineHeight: 19, color: colors.emberDeep }}
           >
-            {error}
+            “{justPaused.title}” foi pausado. Está em Pausados.
           </AppText>
-        ) : null}
-      </ScrollView>
-    </Screen>
+          <Pressable onPress={undoPause} hitSlop={8} accessibilityRole="button">
+            <AppText family="archivo" weight="extraBold" style={{ fontSize: 13.5, color: colors.emberInk }}>
+              Desfazer
+            </AppText>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <SettingsGroup title={GROUP_TITLE[status]} footer={list && list.length > 0 ? GROUP_FOOTER[status] : undefined}>
+        {!list ? (
+          habits.error ? (
+            <SettingsItem title="Não deu para carregar" subtitle="Toque para tentar de novo." onPress={() => void habits.refresh()} />
+          ) : (
+            <SettingsBlock style={{ alignItems: "center", paddingVertical: 28 }}>
+              <ActivityIndicator color={colors.ember} />
+            </SettingsBlock>
+          )
+        ) : list.length === 0 ? (
+          <EmptyState title="Nada por aqui" description={EMPTY[status]} />
+        ) : (
+          list.map((habit) => {
+            const busy = busyId === habit.id;
+            return (
+              <SettingsItem key={habit.id} title={habit.title} subtitle={frequencyLabel(habit)} disabled={busy}>
+                <View className="flex-row flex-wrap" style={{ gap: 8, marginTop: 12 }}>
+                  {habit.status === "ACTIVE" ? (
+                    <SettingsPill label="Pausar" disabled={busy} onPress={() => pause(habit)} />
+                  ) : (
+                    <SettingsPill
+                      label="Retomar"
+                      tone="accent"
+                      disabled={busy}
+                      onPress={() => run(habit.id, () => habitsApi.resume(habit.id))}
+                    />
+                  )}
+                  {habit.status !== "ARCHIVED" ? (
+                    <SettingsPill label="Arquivar" tone="danger" disabled={busy} onPress={() => archive(habit)} />
+                  ) : null}
+                </View>
+              </SettingsItem>
+            );
+          })
+        )}
+      </SettingsGroup>
+
+      <SettingsMessage message={error} />
+    </SettingsPage>
   );
 }

@@ -145,9 +145,9 @@ export default function NotificationsScreen() {
                     <AppText
                       family="manrope"
                       weight="bold"
-                      style={{ fontSize: 11, letterSpacing: 0.4, color: colors.emberDeep }}
+                      style={{ fontSize: 12, color: colors.emberDeep }}
                     >
-                      {(TYPE_LABEL[notification.type] ?? "Avant").toUpperCase()}
+                      {TYPE_LABEL[notification.type] ?? "Avant"}
                     </AppText>
                     <AppText
                       family="manrope"

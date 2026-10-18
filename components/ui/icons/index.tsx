@@ -327,6 +327,27 @@ export function ChevronLeftIcon({ size = 13, color: colorProp }: IconProps) {
   );
 }
 
+/** O chevron de "abrir" (›) e de menu (⌄). `ChevronRightIcon` é uma seta, não isto. */
+export function ChevronIcon({
+  size = 12,
+  color: colorProp,
+  direction = "right",
+}: IconProps & { direction?: "right" | "down" }) {
+  const { colors } = useTheme();
+  const color = colorProp ?? colors.text;
+  return (
+    <Svg
+      width={(size * 8) / 13}
+      height={size}
+      viewBox="0 0 8 14"
+      fill="none"
+      style={direction === "down" ? { transform: [{ rotate: "90deg" }] } : undefined}
+    >
+      <Path d="M1.4 1 7 7l-5.6 6" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function MicIcon({ size = 14, color: colorProp }: IconProps) {
   const { colors } = useTheme();
   const color = colorProp ?? colors.emberInk;

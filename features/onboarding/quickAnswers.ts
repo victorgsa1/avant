@@ -22,13 +22,7 @@ export const QUICK_ANSWERS = {
     "Quero me sentir bem no corpo e na cabeça",
     "Quero ter mais tranquilidade no dia a dia",
   ],
-  barriers: [
-    "Me falta constância: começo animado e depois paro",
-    "Chego sem energia no fim do dia",
-    "Me distraio muito com o celular",
-    "Não sobra tempo na minha rotina",
-    "Desanimo quando não vejo resultado rápido",
-  ],
+  // Barreiras não têm respostas prontas: o passo é uma lista de opções (ver barriers.ts).
 } as const;
 
 export type QuickAnswerKey = keyof typeof QUICK_ANSWERS;

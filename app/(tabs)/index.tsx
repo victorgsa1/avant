@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
+import { useTabBarClearance } from "@/components/navigation/tabBar";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
 import { WeekStrip } from "@/components/ui/WeekStrip";
@@ -41,6 +42,7 @@ function StatusCard({
 
 export default function HojeScreen() {
   const { colors } = useTheme();
+  const bottomClearance = useTabBarClearance();
   const { user } = useSession();
   const {
     view,
@@ -115,7 +117,7 @@ export default function HojeScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: bottomClearance }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

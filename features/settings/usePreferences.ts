@@ -55,8 +55,13 @@ export function minuteLabel(minute: number | null | undefined): string {
   return `${hh}:${mm}`;
 }
 
-/** Avança o horário em passos de 30 min, dando a volta no fim do dia. */
-export function nextHalfHour(minute: number | null | undefined, step = 30): number {
-  const base = minute ?? 0;
-  return (base + step) % (24 * 60);
+const DAY_MINUTES = 24 * 60;
+
+/**
+ * Anda o horário `delta` minutos (meia em meia hora no − e +), dando a volta
+ * na meia-noite. Sem horário definido, o primeiro toque parte de `fallback`.
+ */
+export function stepMinute(minute: number | null | undefined, delta: number, fallback = 0): number {
+  const base = minute ?? fallback - delta;
+  return (((base + delta) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
 }

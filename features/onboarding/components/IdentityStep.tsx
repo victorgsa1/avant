@@ -1,10 +1,10 @@
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
 import { QuickAnswerChips } from "./QuickAnswerChips";
 import { QUICK_ANSWERS } from "../quickAnswers";
-import { IdentityArt } from "./illustrations";
+import { ONBOARDING_ART } from "../art";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type IdentityStepProps = {
@@ -19,9 +19,11 @@ export function IdentityStep({ value, onChangeText, onContinue, error, loading }
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
-      <View style={{ marginTop: 22, width: 150, height: 96 }}>
-        <IdentityArt />
-      </View>
+      <Image
+        source={ONBOARDING_ART.jornada}
+        resizeMode="contain"
+        style={{ marginTop: 22, width: 136, height: 100 }}
+      />
 
       <AppText
         family="archivo"

@@ -23,7 +23,12 @@ type AnswerFieldProps = {
   height?: number;
   /** Deterministic validation message (UX only; backend is authoritative). */
   error?: string | null;
+  /** Uma linha só, sem rodapé — o "Outro motivo" da lista de barreiras. */
+  compact?: boolean;
+  maxLength?: number;
 };
+
+const COMPACT_HEIGHT = 58;
 
 /** Acrescenta um trecho (ditado ou resposta pronta) ao que já foi escrito. */
 export function joinAnswer(base: string, addition: string): string {
@@ -42,6 +47,8 @@ export function AnswerField({
   hint,
   height = 186,
   error,
+  compact = false,
+  maxLength = MAX_LENGTH,
 }: AnswerFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -125,12 +132,13 @@ export function AnswerField({
   return (
     <View>
     <View
-      className="rounded-[26px]"
       style={{
-        height,
+        height: compact ? COMPACT_HEIGHT : height,
+        borderRadius: compact ? 18 : 26,
         paddingHorizontal: active ? 19 : 20,
-        paddingTop: active ? 19 : 20,
-        paddingBottom: active ? 14 : 15,
+        ...(compact
+          ? { justifyContent: "center" as const }
+          : { paddingTop: active ? 19 : 20, paddingBottom: active ? 14 : 15 }),
         backgroundColor: colors.surface,
         borderWidth: active || invalid ? 1.5 : 1,
         borderColor,
@@ -144,7 +152,8 @@ export function AnswerField({
         accessibilityLabel={listening ? "Parar ditado" : "Responder falando"}
         className="absolute items-center justify-center rounded-full"
         style={{
-          top: active ? 11 : 12,
+          // Compacto: centrado na altura (descontada a borda, que engrossa ativa).
+          top: compact ? (COMPACT_HEIGHT - MIC_SIZE) / 2 - (active ? 1.5 : 1) : active ? 11 : 12,
           right: active ? 11 : 12,
           width: MIC_SIZE,
           height: MIC_SIZE,
@@ -156,7 +165,7 @@ export function AnswerField({
       </Pressable>
 
       <TextInput
-        multiline
+        multiline={!compact}
         value={value}
         onChangeText={(text) => {
           setVoiceError(null);
@@ -166,20 +175,21 @@ export function AnswerField({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={colors.textFaint}
-        maxLength={MAX_LENGTH}
+        maxLength={maxLength}
         selectionColor={colors.ember}
-        textAlignVertical="top"
+        textAlignVertical={compact ? "center" : "top"}
+        returnKeyType={compact ? "done" : undefined}
         style={{
-          flex: 1,
+          ...(compact ? {} : { flex: 1, lineHeight: 23 }),
           padding: 0,
           paddingRight: MIC_SIZE + 4,
           fontFamily: fonts.manrope.medium,
           fontSize: 15,
-          lineHeight: 23,
           color: colors.textStrong,
         }}
       />
 
+      {compact ? null : (
       <View className="flex-row items-center justify-between">
         {listening ? (
           <AppText family="manrope" weight="semiBold" style={{ fontSize: 11, color: colors.ember }}>
@@ -198,9 +208,10 @@ export function AnswerField({
           </AppText>
         )}
         <AppText family="manrope" weight="semiBold" style={{ fontSize: 11, color: colors.textWhisper }}>
-          {value.length} / {MAX_LENGTH}
+          {value.length} / {maxLength}
         </AppText>
       </View>
+      )}
     </View>
 
       {invalid ? (

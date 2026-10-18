@@ -101,6 +101,11 @@ export function TextField({ label, error, hint, secureTextEntry, ...inputProps }
             fontFamily: fonts.manrope.medium,
             fontSize: 15,
             color: colors.textStrong,
+            // O iOS recicla a view nativa do TextInput: sem um estilo de
+            // parágrafo próprio, este campo herda o `lineHeight` de um campo
+            // multilinha anterior e o placeholder sai cortado embaixo. O
+            // `textAlign` explícito obriga o RN a mandar um parágrafo novo.
+            textAlign: "left",
           }}
         />
 

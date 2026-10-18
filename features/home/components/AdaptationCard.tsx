@@ -39,48 +39,51 @@ export function AdaptationCard({
 
   return (
     <View className="px-5" style={{ marginTop: 18 }}>
-      <View
-        className="flex-row flex-wrap items-center rounded-[24px]"
-        style={{ backgroundColor: colors.surface, padding: 14, gap: 12 }}
-      >
-        <View
-          className="items-center justify-center"
-          style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: colors.emberMid }}
-        >
-          <AdaptiveIcon size={22} color={colors.inverse} />
-        </View>
+      {/*
+        Texto e botões em linhas separadas. Na mesma linha com flex-wrap, o
+        texto (que encolhe) disputava espaço com os botões (que não
+        encolhem) e virava uma coluna de poucas letras com rótulo longo.
+      */}
+      <View className="rounded-[24px]" style={{ backgroundColor: colors.surface, padding: 14, gap: 12 }}>
+        <View className="flex-row items-center" style={{ gap: 12 }}>
+          <View
+            className="items-center justify-center"
+            style={{ width: 46, height: 46, borderRadius: 15, backgroundColor: colors.emberMid }}
+          >
+            <AdaptiveIcon size={22} color={colors.inverse} />
+          </View>
 
-        {/* flexBasis dá o ponto de quebra: em tela estreita os botões descem. */}
-        <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 150 }}>
-          <AppText
-            family="archivo"
-            weight="extraBold"
-            style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}
-          >
-            {proposal.title}
-          </AppText>
-          <AppText
-            family="manrope"
-            weight="medium"
-            style={{ marginTop: 2, fontSize: 12.5, lineHeight: 17, color: colors.textMuted }}
-          >
-            {proposal.message}
-          </AppText>
-          {onOpenLearned && !isQuestion ? (
-            <Pressable onPress={onOpenLearned} style={{ marginTop: 6, alignSelf: "flex-start" }}>
-              <AppText
-                family="manrope"
-                weight="semiBold"
-                style={{ fontSize: 12, color: colors.textFaint, textDecorationLine: "underline" }}
-              >
-                O que o Avant aprendeu
-              </AppText>
-            </Pressable>
-          ) : null}
+          <View style={{ flex: 1 }}>
+            <AppText
+              family="archivo"
+              weight="extraBold"
+              style={{ fontSize: 16, letterSpacing: -0.3, color: colors.text }}
+            >
+              {proposal.title}
+            </AppText>
+            <AppText
+              family="manrope"
+              weight="medium"
+              style={{ marginTop: 2, fontSize: 12.5, lineHeight: 17, color: colors.textMuted }}
+            >
+              {proposal.message}
+            </AppText>
+            {onOpenLearned && !isQuestion ? (
+              <Pressable onPress={onOpenLearned} style={{ marginTop: 6, alignSelf: "flex-start" }}>
+                <AppText
+                  family="manrope"
+                  weight="semiBold"
+                  style={{ fontSize: 12, color: colors.textFaint, textDecorationLine: "underline" }}
+                >
+                  O que o Avant aprendeu
+                </AppText>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
 
         {isQuestion ? (
-          <View style={{ flexBasis: "100%", gap: 10 }}>
+          <View style={{ gap: 10 }}>
             <FrictionChips
               options={proposal.options ?? undefined}
               disabled={busy}
@@ -93,12 +96,15 @@ export function AdaptationCard({
             </Pressable>
           </View>
         ) : (
-          <View className="flex-row items-center" style={{ gap: 8 }}>
+          // Os dois crescem por igual (mesmo peso); se o par não couber numa
+          // linha ("Não é prioridade agora" + "Seguir com o plano"), um desce.
+          <View className="flex-row flex-wrap" style={{ gap: 8 }}>
             <Pressable
               onPress={() => onDismiss(proposal.id)}
               disabled={busy}
               className="items-center justify-center rounded-full"
               style={{
+                flexGrow: 1,
                 paddingVertical: 11,
                 paddingHorizontal: 18,
                 borderWidth: 1.3,
@@ -116,6 +122,7 @@ export function AdaptationCard({
               disabled={busy}
               className="items-center justify-center rounded-full"
               style={{
+                flexGrow: 1,
                 paddingVertical: 11,
                 paddingHorizontal: 18,
                 borderWidth: 1.3,

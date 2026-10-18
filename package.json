@@ -41,6 +41,8 @@
     "@expo/cli": "^57.0.14",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^57.0.6",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "~6.0.3"
   },
@@ -49,7 +51,8 @@
     "start:plain": "expo start",
     "android": "expo start --dev-client --android",
     "ios": "expo start --dev-client --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "expo lint"
   },
   "private": true
 }

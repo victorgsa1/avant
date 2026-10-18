@@ -7,6 +7,7 @@ import { ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
 import { SettingsRow, SettingsSection } from "@/components/ui/SettingsRow";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { formatJoinCode, shareCompetitionCode } from "@/features/social/share";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { competitionsApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
@@ -155,9 +156,9 @@ export default function CompetitionDetailScreen() {
               <AppText
                 family="manrope"
                 weight="bold"
-                style={{ fontSize: 11, letterSpacing: 0.5, color: colors.emberDeep }}
+                style={{ fontSize: 12, color: colors.emberDeep }}
               >
-                SUA POSIÇÃO
+                Sua posição
               </AppText>
 
               <View className="flex-row items-baseline" style={{ marginTop: 8, gap: 8 }}>
@@ -188,14 +189,14 @@ export default function CompetitionDetailScreen() {
             </View>
           </View>
 
-          <SettingsSection title="PLACAR">
+          <SettingsSection title="Placar">
             {data.standings.map((row, index, list) => (
               <StandingRow key={row.userId} row={row} last={index === list.length - 1} />
             ))}
           </SettingsSection>
 
           {data.pendingInvites.length > 0 ? (
-            <SettingsSection title="CONVITES PENDENTES">
+            <SettingsSection title="Convites pendentes">
               {data.pendingInvites.map((invite, index, list) => (
                 <SettingsRow
                   key={invite.userId}
@@ -207,8 +208,28 @@ export default function CompetitionDetailScreen() {
             </SettingsSection>
           ) : null}
 
+          {data.joinCode && (data.status === "ACTIVE" || data.status === "UPCOMING") ? (
+            <SettingsSection
+              title="Código de entrada"
+              footer="Quem tiver o código entra direto pela aba Competições, até lotar."
+            >
+              <SettingsRow
+                label={formatJoinCode(data.joinCode)}
+                value="Compartilhar"
+                last
+                onPress={() => {
+                  const code = data.joinCode;
+                  if (!code) return;
+                  void shareCompetitionCode(data.title, code).then((opened) => {
+                    if (!opened) setError(`Não deu para compartilhar. O código é ${formatJoinCode(code)}.`);
+                  });
+                }}
+              />
+            </SettingsSection>
+          ) : null}
+
           <SettingsSection
-            title="DETALHES"
+            title="Detalhes"
             footer={`De ${shortDate(data.startDate)} a ${shortDate(data.endDate)} · criada por ${data.creator.name}`}
           >
             <SettingsRow label="Participantes" value={`${data.participantCount}`} />

@@ -8,9 +8,11 @@ import { OnboardingCanvas } from "@/features/onboarding/components/OnboardingCan
 import { PlanStep } from "@/features/onboarding/components/PlanStep";
 import { StartStep } from "@/features/onboarding/components/StartStep";
 import { StepHeader } from "@/features/onboarding/components/StepHeader";
+import { BARRIER_OTHER_MAX_LENGTH, composeBarriersAnswer, type BarrierId } from "@/features/onboarding/barriers";
 import { useOnboardingFlow } from "@/features/onboarding/hooks/useOnboardingFlow";
 import type { AreaId } from "@/features/onboarding/types";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
@@ -53,6 +55,17 @@ export default function OnboardingScreen() {
 
   const quote = answers.identity.trim() || SAMPLE_QUOTE;
   const areaLabel = answers.area ? AREA_LABELS[answers.area] : "sua meta";
+
+  // A lista de barreiras é estado da tela (sobrevive a voltar e avançar); o
+  // fluxo só conhece o texto final que vai para a API.
+  const [barrierChoices, setBarrierChoices] = useState<BarrierId[]>([]);
+  const [barrierOther, setBarrierOther] = useState("");
+
+  const updateBarriers = (choices: BarrierId[], other: string) => {
+    setBarrierChoices(choices);
+    setBarrierOther(other);
+    setAnswer("barriers", composeBarriersAnswer(choices, other));
+  };
 
   if (step === "start") {
     return (
@@ -101,6 +114,7 @@ export default function OnboardingScreen() {
 
             {step === "motivation" ? (
               <MotivationStep
+                area={answers.area}
                 areaLabel={areaLabel}
                 value={answers.motivation}
                 error={error}
@@ -112,10 +126,19 @@ export default function OnboardingScreen() {
 
             {step === "barriers" ? (
               <BarriersStep
-                value={answers.barriers}
+                selected={barrierChoices}
+                other={barrierOther}
                 error={error}
                 loading={submitting}
-                onChangeText={(value) => setAnswer("barriers", value)}
+                onToggle={(id) =>
+                  updateBarriers(
+                    barrierChoices.includes(id)
+                      ? barrierChoices.filter((choice) => choice !== id)
+                      : [...barrierChoices, id],
+                    barrierOther,
+                  )
+                }
+                onChangeOther={(value) => updateBarriers(barrierChoices, value.slice(0, BARRIER_OTHER_MAX_LENGTH))}
                 onContinue={goNext}
               />
             ) : null}

@@ -9,6 +9,11 @@ export interface AsyncResource<T> {
   refreshing: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /**
+   * Recarrega sem indicador nenhum — para ressincronizar em segundo plano
+   * (ex.: o socket reconectou), sem o RefreshControl puxar a lista.
+   */
+  reload: () => Promise<void>;
   /** Atualização otimista local, sem ida ao servidor. */
   mutate: (updater: (current: T) => T) => void;
 }
@@ -84,10 +89,11 @@ export function useAsyncResource<T>(
   );
 
   const refresh = useCallback(() => load("refresh"), [load]);
+  const reload = useCallback(() => load("silent"), [load]);
 
   const mutate = useCallback((updater: (current: T) => T) => {
     setData((current) => (current === null ? current : updater(current)));
   }, []);
 
-  return { data, loading, refreshing, error, refresh, mutate };
+  return { data, loading, refreshing, error, refresh, reload, mutate };
 }

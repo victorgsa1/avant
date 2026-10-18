@@ -1,32 +1,32 @@
-import { ScrollView } from "react-native";
-import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { OptionPills, SettingsSection } from "@/components/ui/SettingsRow";
+import { MoonIcon, PhoneIcon, SunIcon } from "@/components/ui/icons/settings";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { SettingsGroup, SettingsOption, type SettingsIcon } from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import type { ThemeMode } from "@/services/storage/preferencesStorage";
 
-const MODES: { value: ThemeMode; label: string }[] = [
-  { value: "system", label: "Do sistema" },
-  { value: "light", label: "Claro" },
-  { value: "dark", label: "Escuro" },
+const MODES: { value: ThemeMode; label: string; help: string; icon: SettingsIcon }[] = [
+  { value: "system", label: "Do sistema", help: "Acompanha o claro/escuro do celular.", icon: PhoneIcon },
+  { value: "light", label: "Claro", help: "Papel claro, sempre.", icon: SunIcon },
+  { value: "dark", label: "Escuro", help: "Fundo escuro, sempre.", icon: MoonIcon },
 ];
 
 export default function AppearanceScreen() {
   const { mode, setMode } = useTheme();
 
   return (
-    <Screen>
-      <PageHeader title="Aparência" onBack={() => router.back()} />
-
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 60 }}>
-        <SettingsSection
-          title="TEMA"
-          footer="A escolha vale só neste aparelho. Em “Do sistema”, o Avant acompanha o ajuste de claro/escuro do celular."
-        >
-          <OptionPills options={MODES} value={mode} onChange={setMode} />
-        </SettingsSection>
-      </ScrollView>
-    </Screen>
+    <SettingsPage title="Aparência" subtitle="Claro, escuro ou do sistema">
+      <SettingsGroup title="Tema" footer="A escolha vale só neste aparelho e muda o app na hora.">
+        {MODES.map((option) => (
+          <SettingsOption
+            key={option.value}
+            icon={option.icon}
+            title={option.label}
+            subtitle={option.help}
+            selected={mode === option.value}
+            onSelect={() => setMode(option.value)}
+          />
+        ))}
+      </SettingsGroup>
+    </SettingsPage>
   );
 }

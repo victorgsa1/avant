@@ -1,13 +1,15 @@
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { AnswerField } from "./AnswerField";
 import { QuickAnswerChips } from "./QuickAnswerChips";
 import { QUICK_ANSWERS } from "../quickAnswers";
-import { HealthArt } from "./illustrations";
+import { motivationArtFor } from "../art";
+import type { AreaId } from "../types";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type MotivationStepProps = {
+  area: AreaId | null;
   areaLabel: string;
   value: string;
   error?: string | null;
@@ -16,7 +18,7 @@ type MotivationStepProps = {
   onContinue: () => void;
 };
 
-export function MotivationStep({ areaLabel, value, onChangeText, onContinue, error, loading }: MotivationStepProps) {
+export function MotivationStep({ area, areaLabel, value, onChangeText, onContinue, error, loading }: MotivationStepProps) {
   const { colors } = useTheme();
   return (
     <View className="flex-1 px-6" style={{ paddingBottom: 34 }}>
@@ -27,7 +29,7 @@ export function MotivationStep({ areaLabel, value, onChangeText, onContinue, err
             Sobre {areaLabel}
           </AppText>
         </View>
-        <HealthArt />
+        <Image source={motivationArtFor(area)} resizeMode="contain" style={{ width: 100, height: 88 }} />
       </View>
 
       <AppText

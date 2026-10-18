@@ -88,13 +88,13 @@ export default function NewCompetitionScreen() {
         </View>
 
         <SettingsSection
-          title="DURAÇÃO"
+          title="Duração"
           footer="Vence quem tiver a maior consistência média — aderência ao próprio plano, não volume de ações."
         >
           <OptionPills options={DURATIONS} value={duration} onChange={setDuration} />
         </SettingsSection>
 
-        <SettingsSection title="CONVIDAR AMIGOS">
+        <SettingsSection title="Convidar amigos">
           {(friends.data ?? []).length === 0 ? (
             <EmptyState
               title="Você ainda não tem amigos no Avant"

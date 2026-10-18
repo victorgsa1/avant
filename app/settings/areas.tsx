@@ -1,37 +1,64 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, RefreshControl, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
-import { AppText } from "@/components/ui/AppText";
+import { View } from "react-native";
+import { EmptyState } from "@/components/layout/ScreenState";
+import { PlusLineIcon } from "@/components/ui/icons";
+import { TrashIcon } from "@/components/ui/icons/settings";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { TextField } from "@/components/ui/TextField";
-import { SettingsRow, SettingsSection } from "@/components/ui/SettingsRow";
-import { useTheme } from "@/components/theme/ThemeProvider";
+import { areaIconFor } from "@/features/settings/areaIcons";
+import {
+  SettingsBlock,
+  SettingsGroup,
+  SettingsItem,
+  SettingsMessage,
+  SettingsPill,
+} from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { areasApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+import type { AreaResponse } from "@/services/http/types";
+import { confirmAction } from "@/services/native/confirm";
 
 /**
  * Áreas da vida que a pessoa acompanha. Remover é desativação lógica no
  * backend — o histórico dos hábitos ligados a ela continua de pé.
+ *
+ * Um formulário só, para criar e para editar: tocar numa área carrega ela
+ * nos campos; o formulário aparece quando há algo para preencher.
  */
 export default function AreasScreen() {
-  const { colors } = useTheme();
   const areas = useAsyncResource(useCallback(() => areasApi.list(), []));
 
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<AreaResponse | null>(null);
   const [name, setName] = useState("");
   const [why, setWhy] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const reset = () => {
-    setEditingId(null);
+  const close = () => {
+    setFormOpen(false);
+    setEditing(null);
     setName("");
     setWhy("");
+    setError(null);
+  };
+
+  const startEditing = (area: AreaResponse) => {
+    setEditing(area);
+    setName(area.name);
+    setWhy(area.whyImportant ?? "");
+    setError(null);
+    setFormOpen(true);
+  };
+
+  const startCreating = () => {
+    setEditing(null);
+    setName("");
+    setWhy("");
+    setError(null);
+    setFormOpen(true);
   };
 
   const submit = async () => {
@@ -43,12 +70,10 @@ export default function AreasScreen() {
     setSaving(true);
     setError(null);
     try {
-      if (editingId) {
-        await areasApi.update(editingId, { name: name.trim(), whyImportant: why.trim() || undefined });
-      } else {
-        await areasApi.create({ name: name.trim(), whyImportant: why.trim() || undefined });
-      }
-      reset();
+      const input = { name: name.trim(), whyImportant: why.trim() || undefined };
+      if (editing) await areasApi.update(editing.id, input);
+      else await areasApi.create(input);
+      close();
       await areas.refresh();
     } catch (caught) {
       setError(userMessage(caught));
@@ -57,80 +82,58 @@ export default function AreasScreen() {
     }
   };
 
-  const remove = (id: string, label: string) => {
-    const run = () => {
-      void areasApi
-        .remove(id)
-        .then(() => areas.refresh())
-        .catch((caught) => setError(userMessage(caught)));
-    };
+  const remove = (area: AreaResponse) =>
+    confirmAction({
+      title: `Remover "${area.name}"?`,
+      message: "Os hábitos ligados a ela continuam existindo.",
+      confirmLabel: "Remover",
+      destructive: true,
+      onConfirm: () => {
+        close();
+        void areasApi
+          .remove(area.id)
+          .then(() => areas.refresh())
+          .catch((caught) => setError(userMessage(caught)));
+      },
+    });
 
-    if (Platform.OS === "web") {
-      run();
-      return;
-    }
-    Alert.alert(`Remover "${label}"?`, "Os hábitos ligados a ela continuam existindo.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Remover", style: "destructive", onPress: run },
-    ]);
-  };
+  const list = areas.data;
 
   return (
-    <Screen>
-      <PageHeader title="Áreas" onBack={() => router.back()} />
+    <SettingsPage
+      title="Áreas da vida"
+      subtitle="Organize o que quer cuidar"
+      keyboard
+      loading={areas.loading && !list}
+      error={!list ? areas.error : null}
+      onRetry={() => void areas.refresh()}
+      refreshing={areas.refreshing}
+      onRefresh={() => void areas.refresh()}
+    >
+      <SettingsGroup
+        title="Suas áreas"
+        footer={list && list.length > 0 ? "Áreas agrupam seus hábitos por parte da vida. Toque numa para editar." : undefined}
+      >
+        {list && list.length === 0 ? (
+          <EmptyState title="Nenhuma área ainda" description="Áreas agrupam seus hábitos por parte da vida." />
+        ) : null}
+        {(list ?? []).map((area) => (
+          <SettingsItem
+            key={area.id}
+            icon={areaIconFor(area.name)}
+            title={area.name}
+            subtitle={area.whyImportant}
+            value={editing?.id === area.id ? "Editando" : null}
+            onPress={() => startEditing(area)}
+          />
+        ))}
+        {!formOpen ? <SettingsItem icon={PlusLineIcon} title="Adicionar uma área" chevron={false} onPress={startCreating} /> : null}
+      </SettingsGroup>
 
-      {areas.loading && !areas.data ? <ScreenLoading /> : null}
-      {areas.error && !areas.data ? (
-        <ScreenError message={areas.error} onRetry={() => void areas.refresh()} />
-      ) : null}
-
-      {areas.data ? (
-        <KeyboardAwareScrollView
-          className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 80 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={areas.refreshing}
-              onRefresh={() => void areas.refresh()}
-              tintColor={colors.ember}
-            />
-          }
-        >
-          <SettingsSection title="SUAS ÁREAS">
-            {areas.data.length === 0 ? (
-              <EmptyState
-                title="Nenhuma área ainda"
-                description="Áreas agrupam seus hábitos por parte da vida."
-              />
-            ) : null}
-
-            {areas.data.map((area, index, list) => (
-              <SettingsRow
-                key={area.id}
-                label={area.name}
-                description={area.whyImportant}
-                value="Editar"
-                last={index === list.length - 1}
-                onPress={() => {
-                  setEditingId(area.id);
-                  setName(area.name);
-                  setWhy(area.whyImportant ?? "");
-                }}
-              />
-            ))}
-          </SettingsSection>
-
-          <View style={{ paddingHorizontal: 20, paddingTop: 26, gap: 14 }}>
-            <AppText
-              family="archivo"
-              weight="extraBold"
-              style={{ fontSize: 13, letterSpacing: 0.2, color: colors.textMuted, paddingLeft: 4 }}
-            >
-              {editingId ? "EDITAR ÁREA" : "NOVA ÁREA"}
-            </AppText>
-
-            <TextField label="Nome" value={name} onChangeText={setName} maxLength={80} />
+      {formOpen ? (
+        <SettingsGroup title={editing ? "Editar área" : "Nova área"}>
+          <SettingsBlock>
+            <TextField label="Nome" value={name} onChangeText={setName} maxLength={80} autoFocus={!editing} />
             <TextField
               label="Por que importa"
               value={why}
@@ -139,39 +142,23 @@ export default function AreasScreen() {
               numberOfLines={3}
               maxLength={500}
             />
-
-            {error ? (
-              <AppText family="manrope" weight="medium" style={{ fontSize: 12.5, color: colors.danger }}>
-                {error}
-              </AppText>
-            ) : null}
-
             <PrimaryButton
-              label={editingId ? "Salvar alterações" : "Adicionar área"}
+              label={editing ? "Salvar alterações" : "Adicionar área"}
               withArrow={false}
               loading={saving}
               onPress={() => void submit()}
             />
-
-            {editingId ? (
-              <>
-                <SettingsSection>
-                  <SettingsRow
-                    label="Remover esta área"
-                    destructive
-                    last
-                    onPress={() => {
-                      remove(editingId, name);
-                      reset();
-                    }}
-                  />
-                </SettingsSection>
-                <PrimaryButton label="Cancelar edição" withArrow={false} onPress={reset} />
-              </>
-            ) : null}
-          </View>
-        </KeyboardAwareScrollView>
+            <View className="items-center">
+              <SettingsPill label="Cancelar" onPress={close} />
+            </View>
+          </SettingsBlock>
+          {editing ? (
+            <SettingsItem icon={TrashIcon} tone="danger" title="Remover esta área" onPress={() => remove(editing)} />
+          ) : null}
+        </SettingsGroup>
       ) : null}
-    </Screen>
+
+      <SettingsMessage message={error} />
+    </SettingsPage>
   );
 }

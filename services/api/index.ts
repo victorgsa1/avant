@@ -31,10 +31,12 @@ import type {
   PreferencesResponse,
   ProgressBucketRow,
   ProgressDailyRow,
+  ProgressMonthResponse,
   ProgressOverviewResponse,
   ProgressSummaryResponse,
   PlanAreaKey,
   PlanPreviewResponse,
+  PublicProfileResponse,
   PublicUser,
   ReminderResponse,
   SendFriendRequestResult,
@@ -85,6 +87,13 @@ export const usersApi = {
   getPreferences: () => http.get<PreferencesResponse>("/me/preferences"),
   updatePreferences: (input: Partial<Omit<PreferencesResponse, "id" | "userId">>) =>
     http.patch<PreferencesResponse>("/me/preferences", input),
+
+  /**
+   * Perfil de outra pessoa. Bloqueio ou perfil fora de alcance voltam 404.
+   * O id pode vir de um deep link, por isso o encode.
+   */
+  profile: (userId: string) =>
+    http.get<PublicProfileResponse>(`/users/${encodeURIComponent(userId)}`),
 };
 
 export const areasApi = {
@@ -127,6 +136,8 @@ export const todayApi = {
 export const progressApi = {
   summary: () => http.get<ProgressSummaryResponse>("/progress/summary"),
   overview: () => http.get<ProgressOverviewResponse>("/progress/overview"),
+  /** Sem `month`, o mês atual da pessoa. */
+  month: (month?: string) => http.get<ProgressMonthResponse>("/progress/month", { query: { month } }),
   daily: (range?: { from?: string; to?: string }) =>
     http.get<ProgressDailyRow[]>("/progress/daily", { query: range }),
   weekly: (range?: { from?: string; to?: string }) =>
@@ -223,6 +234,9 @@ export const competitionsApi = {
   invite: (id: string, userIds: string[]) =>
     http.post<CompetitionResponse>(`/competitions/${id}/participants`, { userIds }),
   join: (id: string) => http.post<CompetitionResponse>(`/competitions/${id}/join`),
+  /** Entra com o código que alguém de dentro passou. */
+  joinByCode: (code: string) =>
+    http.post<CompetitionResponse>("/competitions/join-by-code", { code }),
   decline: (id: string) => http.post<void>(`/competitions/${id}/decline`),
   leave: (id: string) => http.post<void>(`/competitions/${id}/leave`),
   cancel: (id: string) => http.delete<void>(`/competitions/${id}`),

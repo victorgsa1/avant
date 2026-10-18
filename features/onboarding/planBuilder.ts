@@ -186,21 +186,31 @@ export function starterPlanFromPreview(preview: PlanPreviewResponse, identity: s
 }
 
 /**
- * Palpite de área a partir da fala, só para pré-selecionar o chip do passo
- * seguinte. A pessoa pode trocar; o plano de verdade vem da IA.
+ * Palpite de área a partir da fala. Quando acerta, a tela de área é pulada
+ * e o palpite vira a área do plano; ela só aparece quando nada aqui casa.
+ * A pessoa ainda pode voltar e trocar; o plano de verdade vem da IA.
+ *
+ * Os padrões são escritos sem acento ("saudavel", "familia") porque o texto
+ * é normalizado antes. A ordem desempata: a primeira área que casar vence,
+ * da mais específica (criatividade) para a mais genérica (rotina).
  */
 const AREA_HINTS: [AreaId, RegExp][] = [
-  ["criatividade", /guitarr|viol[aã]o|m[uú]sic|\bcant(ar|or|ora)\b|\bbanda\b|piano|bateri|desenh|\bpint(ar|or|ura)|\barte\b|artista|escrev|escritor|fotograf|dan[cç]/],
-  ["saude", /academia|trein|muscula|corr(er|ida)|emagrec|peso|sa[uú]de|dieta|forma f[ií]sica|atleta/],
-  ["estudos", /estud|faculdade|prova|concurso|vestibular|ler mais|leitura|idioma|ingl[eê]s/],
-  ["financas", /dinheiro|finan[cç]|d[ií]vida|economiz|investi|poupar/],
-  ["trabalho", /trabalh|carreira|emprego|promo[cç][aã]o|empresa|neg[oó]cio|produtiv/],
-  ["relacionamentos", /fam[ií]lia|amig|namor|casamento|filh|relacionamento/],
-  ["rotina", /rotina|organiz|acordar cedo|dormir|sono|disciplina/],
+  ["criatividade", /guitarr|violao|music|\bcant(ar|or|ora)\b|\bbanda\b|piano|bateri|desenh|\bpint(ar|or|ura)|\bartes?\b|artista|criativ|escrev|escritor|poesia|poema|fotograf|\bdanc|teatro|instrumento/],
+  ["saude", /saud(e|avel|aveis)|academia|trein|muscula|exercici|esporte|\bcorr(er|ida|idas)\b|caminhar|caminhada|pedalar|bicicleta|natacao|\bnadar\b|yoga|ioga|pilates|emagrec|\bpeso\b|dieta|aliment|comer (melhor|bem)|forma fisica|atividade fisica|atleta|energia|\bcorpo\b|bem[- ]estar|ansiedade|estresse|meditar|meditacao|fumar|cigarro|alcool/],
+  ["estudos", /estud|faculdade|\bprovas?\b|concurso|vestibular|\benem\b|\bler\b|leitura|\blivros?\b|idioma|ingles|espanhol|frances|\bcursos?\b|aprend|mestrado|doutorado/],
+  ["financas", /dinheiro|financ|divida|economiz|investi|poupar|poupanca|\bgast(ar|o|os)\b|orcamento|salario|aposentadoria/],
+  ["trabalho", /trabalh|carreira|emprego|profiss|promocao|empresa|negocio|empreend|produtiv|lideranca|\bchefe\b|\bclientes?\b/],
+  ["relacionamentos", /familia|amig|namor|casamento|\bcasad|filh|esposa|marido|companheir|relacionamento|\bmae\b|\bpai\b/],
+  ["rotina", /rotina|organiz|planej|acordar cedo|dormir|\bsono\b|disciplina|habito|procrastin|constancia/],
 ];
 
+/** "Saudável" → "saudavel". */
+function normalizeForHints(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
 export function suggestAreaFromText(text: string): AreaId | null {
-  const normalized = text.toLowerCase();
+  const normalized = normalizeForHints(text);
   for (const [area, pattern] of AREA_HINTS) {
     if (pattern.test(normalized)) return area;
   }

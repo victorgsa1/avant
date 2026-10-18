@@ -1,31 +1,88 @@
 import { useCallback, useState } from "react";
-import { Alert, Platform, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
+import { Switch, View } from "react-native";
 import { AppText } from "@/components/ui/AppText";
+import { BarsIcon, PeopleIcon, SparkleIcon } from "@/components/ui/icons";
+import { BellOutlineIcon, ClockOutlineIcon, MoonIcon, SunIcon, TrashIcon } from "@/components/ui/icons/settings";
+import { Pressable } from "@/components/ui/Pressable";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { TextField } from "@/components/ui/TextField";
-import { SettingsRow, SettingsSection, SettingsToggle } from "@/components/ui/SettingsRow";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { minuteLabel, nextHalfHour, usePreferences } from "@/features/settings/usePreferences";
+import {
+  SettingsBlock,
+  SettingsGroup,
+  SettingsItem,
+  SettingsMessage,
+  SettingsStepper,
+  SettingsSwitch,
+} from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
+import { minuteLabel, stepMinute, usePreferences } from "@/features/settings/usePreferences";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { notificationsApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 import type { ReminderResponse } from "@/services/http/types";
+import { confirmAction } from "@/services/native/confirm";
+import { tapHaptic } from "@/services/native/haptics";
 
+const STEP = 30;
+const DEFAULT_LIMIT = 2;
+const MAX_LIMIT = 5;
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const DAY_INITIALS = ["D", "S", "T", "Q", "Q", "S", "S"];
+const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 function daysLabel(days: number[]): string {
   if (days.length === 7) return "Todos os dias";
   if (days.length === 0) return "Nenhum dia";
-  return days
-    .slice()
-    .sort((a, b) => a - b)
-    .map((day) => DAY_INITIALS[day])
-    .join(" · ");
+  const sorted = days.slice().sort((a, b) => a - b);
+  if (sorted.join() === "1,2,3,4,5") return "Dias úteis";
+  if (sorted.join() === "0,6") return "Fins de semana";
+  return sorted.map((day) => DAY_INITIALS[day]).join(" · ");
+}
+
+/** Os sete dias como bolinhas: ligada = o lembrete toca nesse dia. */
+function DaysPicker({ value, onChange }: { value: number[]; onChange: (next: number[]) => void }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+      <AppText family="manrope" weight="semiBold" style={{ fontSize: 13, color: colors.textMuted }}>
+        Repetir · {daysLabel(value)}
+      </AppText>
+      <View className="flex-row justify-between">
+        {ALL_DAYS.map((day) => {
+          const active = value.includes(day);
+          return (
+            <Pressable
+              key={day}
+              haptic="selection"
+              onPress={() =>
+                onChange(active ? value.filter((item) => item !== day) : [...value, day].sort((a, b) => a - b))
+              }
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: active }}
+              accessibilityLabel={DAY_NAMES[day]}
+              className="items-center justify-center rounded-full"
+              style={{
+                width: 38,
+                height: 38,
+                backgroundColor: active ? colors.ember : "transparent",
+                borderWidth: active ? 0 : 1.3,
+                borderColor: colors.lineStrong,
+              }}
+            >
+              <AppText
+                family="archivo"
+                weight="bold"
+                style={{ fontSize: 14, color: active ? colors.onEmber : colors.textMuted }}
+              >
+                {DAY_INITIALS[day]}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
 /**
@@ -43,6 +100,7 @@ export default function NotificationSettingsScreen() {
 
   const [title, setTitle] = useState("");
   const [minute, setMinute] = useState(19 * 60);
+  const [days, setDays] = useState<number[]>(ALL_DAYS);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -51,12 +109,17 @@ export default function NotificationSettingsScreen() {
       setError("Escreva o que o lembrete deve dizer.");
       return;
     }
+    if (days.length === 0) {
+      setError("Escolha pelo menos um dia.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
     try {
-      await notificationsApi.createReminder({ title: title.trim(), minuteOfDay: minute });
+      await notificationsApi.createReminder({ title: title.trim(), minuteOfDay: minute, daysOfWeek: days });
       setTitle("");
+      setDays(ALL_DAYS);
       await reminders.refresh();
     } catch (caught) {
       setError(userMessage(caught));
@@ -65,190 +128,188 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const runOnReminder = (action: Promise<unknown>) => {
-    void action
-      .then(() => reminders.refresh())
-      .catch((caught) => setError(userMessage(caught)));
+  const toggleReminder = (reminder: ReminderResponse, isEnabled: boolean) => {
+    setError(null);
+    reminders.mutate((list) => list.map((item) => (item.id === reminder.id ? { ...item, isEnabled } : item)));
+    void notificationsApi
+      .updateReminder(reminder.id, { isEnabled })
+      .catch((caught) => {
+        setError(userMessage(caught));
+        void reminders.refresh();
+      });
   };
 
-  /** Uma linha, todas as ações — pausar/ativar e apagar no mesmo toque. */
-  const openReminderActions = (reminder: ReminderResponse) => {
-    const toggle = () =>
-      runOnReminder(
-        notificationsApi.updateReminder(reminder.id, { isEnabled: !reminder.isEnabled }),
-      );
-    const remove = () => runOnReminder(notificationsApi.deleteReminder(reminder.id));
-
-    if (Platform.OS === "web") {
-      toggle();
-      return;
-    }
-
-    Alert.alert(reminder.title, `${minuteLabel(reminder.minuteOfDay)} · ${daysLabel(reminder.daysOfWeek)}`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: reminder.isEnabled ? "Pausar" : "Ativar", onPress: toggle },
-      { text: "Apagar", style: "destructive", onPress: remove },
-    ]);
-  };
-
-  if (preferences.loading && !preferences.data) {
-    return (
-      <Screen>
-        <PageHeader title="Notificações" onBack={() => router.back()} />
-        <ScreenLoading />
-      </Screen>
-    );
-  }
-
-  if (!preferences.data) {
-    return (
-      <Screen>
-        <PageHeader title="Notificações" onBack={() => router.back()} />
-        <ScreenError
-          message={preferences.error ?? "Não foi possível carregar."}
-          onRetry={() => void preferences.refresh()}
-        />
-      </Screen>
-    );
-  }
+  const deleteReminder = (reminder: ReminderResponse) =>
+    confirmAction({
+      title: `Apagar "${reminder.title}"?`,
+      confirmLabel: "Apagar",
+      destructive: true,
+      onConfirm: () => {
+        void notificationsApi
+          .deleteReminder(reminder.id)
+          .then(() => reminders.refresh())
+          .catch((caught) => setError(userMessage(caught)));
+      },
+    });
 
   const prefs = preferences.data;
+  const limit = prefs?.behavioralDailyLimit ?? DEFAULT_LIMIT;
 
   return (
-    <Screen>
-      <PageHeader title="Notificações" onBack={() => router.back()} />
-
-      <KeyboardAwareScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 90 }}
-      >
-        <SettingsSection title="O QUE PODE CHEGAR">
-          <SettingsToggle
-            label="Notificações"
-            description="Desligar aqui silencia tudo, inclusive seus lembretes."
-            value={prefs.notificationsEnabled}
-            onChange={(notificationsEnabled) => preferences.patch({ notificationsEnabled })}
-          />
-          <SettingsToggle
-            label="Intervenções do Avant"
-            description="Resgates e retomadas decididos a partir do seu comportamento."
-            value={prefs.behavioralNotificationsEnabled}
-            disabled={!prefs.notificationsEnabled}
-            onChange={(behavioralNotificationsEnabled) =>
-              preferences.patch({ behavioralNotificationsEnabled })
-            }
-          />
-          <SettingsToggle
-            label="Social"
-            description="Pedidos de amizade, convites de competição."
-            value={prefs.socialNotificationsEnabled}
-            disabled={!prefs.notificationsEnabled}
-            last
-            onChange={(socialNotificationsEnabled) =>
-              preferences.patch({ socialNotificationsEnabled })
-            }
-          />
-        </SettingsSection>
-
-        <SettingsSection
-          title="HORÁRIO DE SILÊNCIO"
-          footer="Nada é enviado nessa faixa. Toque nos horários para ajustar."
-        >
-          <SettingsToggle
-            label="Ativar silêncio"
-            value={prefs.quietHoursEnabled}
-            onChange={(quietHoursEnabled) => preferences.patch({ quietHoursEnabled })}
-          />
-          <SettingsRow
-            label="Começa às"
-            value={minuteLabel(prefs.quietHoursStart)}
-            disabled={!prefs.quietHoursEnabled}
-            onPress={() => preferences.patch({ quietHoursStart: nextHalfHour(prefs.quietHoursStart) })}
-          />
-          <SettingsRow
-            label="Termina às"
-            value={minuteLabel(prefs.quietHoursEnd)}
-            disabled={!prefs.quietHoursEnabled}
-            last
-            onPress={() => preferences.patch({ quietHoursEnd: nextHalfHour(prefs.quietHoursEnd) })}
-          />
-        </SettingsSection>
-
-        <SettingsSection
-          title="LIMITE DIÁRIO"
-          footer="Teto de intervenções por dia. Seus lembretes não entram nessa conta."
-        >
-          <SettingsRow
-            label="Intervenções por dia"
-            value={String(prefs.behavioralDailyLimit ?? 2)}
-            last
-            onPress={() =>
-              preferences.patch({
-                behavioralDailyLimit: ((prefs.behavioralDailyLimit ?? 2) % 5) + 1,
-              })
-            }
-          />
-        </SettingsSection>
-
-        <SettingsSection title="SEUS LEMBRETES">
-          {(reminders.data ?? []).map((reminder, index, list) => (
-            <SettingsRow
-              key={reminder.id}
-              label={reminder.title}
-              description={`${minuteLabel(reminder.minuteOfDay)} · ${daysLabel(reminder.daysOfWeek)}${
-                reminder.isEnabled ? "" : " · pausado"
-              }`}
-              last={index === list.length - 1}
-              onPress={() => openReminderActions(reminder)}
+    <SettingsPage
+      title="Notificações"
+      subtitle="Preferências e seus lembretes"
+      keyboard
+      loading={preferences.loading && !prefs}
+      error={!prefs ? (preferences.error ?? "Não foi possível carregar.") : null}
+      onRetry={() => void preferences.refresh()}
+    >
+      {prefs ? (
+        <>
+          <SettingsGroup title="O que pode chegar">
+            <SettingsSwitch
+              icon={BellOutlineIcon}
+              title="Notificações"
+              subtitle="Desligar aqui silencia tudo, inclusive seus lembretes."
+              value={prefs.notificationsEnabled}
+              onChange={(notificationsEnabled) => preferences.patch({ notificationsEnabled })}
             />
-          ))}
+            <SettingsSwitch
+              icon={SparkleIcon}
+              title="Intervenções do Avant"
+              subtitle="Resgates e retomadas decididos a partir do seu comportamento."
+              value={prefs.behavioralNotificationsEnabled}
+              disabled={!prefs.notificationsEnabled}
+              onChange={(behavioralNotificationsEnabled) => preferences.patch({ behavioralNotificationsEnabled })}
+            />
+            <SettingsSwitch
+              icon={PeopleIcon}
+              title="Social"
+              subtitle="Pedidos de amizade e convites de competição."
+              value={prefs.socialNotificationsEnabled}
+              disabled={!prefs.notificationsEnabled}
+              onChange={(socialNotificationsEnabled) => preferences.patch({ socialNotificationsEnabled })}
+            />
+          </SettingsGroup>
 
-          {reminders.data?.length === 0 ? (
-            <SettingsRow label="Nenhum lembrete criado" last />
-          ) : null}
-        </SettingsSection>
+          <SettingsGroup title="Horário de silêncio" footer="Nada é enviado nessa faixa, nem lembrete.">
+            <SettingsSwitch
+              icon={MoonIcon}
+              title="Ativar silêncio"
+              value={prefs.quietHoursEnabled}
+              onChange={(quietHoursEnabled) => preferences.patch({ quietHoursEnabled })}
+            />
+            <SettingsStepper
+              icon={MoonIcon}
+              title="Começa às"
+              value={minuteLabel(prefs.quietHoursStart)}
+              disabled={!prefs.quietHoursEnabled}
+              onDecrement={() => preferences.patch({ quietHoursStart: stepMinute(prefs.quietHoursStart, -STEP) })}
+              onIncrement={() => preferences.patch({ quietHoursStart: stepMinute(prefs.quietHoursStart, STEP) })}
+            />
+            <SettingsStepper
+              icon={SunIcon}
+              title="Termina às"
+              value={minuteLabel(prefs.quietHoursEnd)}
+              disabled={!prefs.quietHoursEnabled}
+              onDecrement={() => preferences.patch({ quietHoursEnd: stepMinute(prefs.quietHoursEnd, -STEP) })}
+              onIncrement={() => preferences.patch({ quietHoursEnd: stepMinute(prefs.quietHoursEnd, STEP) })}
+            />
+          </SettingsGroup>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 26, gap: 14 }}>
-          <AppText
-            family="archivo"
-            weight="extraBold"
-            style={{ fontSize: 13, letterSpacing: 0.2, color: colors.textMuted, paddingLeft: 4 }}
+          <SettingsGroup
+            title="Limite diário"
+            footer="Teto de intervenções do Avant por dia. Seus lembretes não entram nessa conta."
           >
-            NOVO LEMBRETE
-          </AppText>
+            <SettingsStepper
+              icon={BarsIcon}
+              title="Máximo por dia"
+              value={String(limit)}
+              disabled={!prefs.notificationsEnabled || !prefs.behavioralNotificationsEnabled}
+              canDecrement={limit > 1}
+              canIncrement={limit < MAX_LIMIT}
+              onDecrement={() => preferences.patch({ behavioralDailyLimit: limit - 1 })}
+              onIncrement={() => preferences.patch({ behavioralDailyLimit: limit + 1 })}
+            />
+          </SettingsGroup>
+        </>
+      ) : null}
 
+      <SettingsGroup title="Seus lembretes" description="Os que você mesmo pediu. Tocam no horário marcado.">
+        {(reminders.data ?? []).map((reminder) => (
+          <SettingsItem
+            key={reminder.id}
+            icon={ClockOutlineIcon}
+            title={reminder.title}
+            subtitle={`${minuteLabel(reminder.minuteOfDay)} · ${daysLabel(reminder.daysOfWeek)}`}
+            right={
+              <View className="flex-row items-center" style={{ gap: 10 }}>
+                <Pressable
+                  onPress={() => deleteReminder(reminder)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Apagar lembrete ${reminder.title}`}
+                  className="items-center justify-center rounded-full"
+                  style={{ width: 34, height: 34 }}
+                >
+                  <TrashIcon size={20} color={colors.textMuted} />
+                </Pressable>
+                <Switch
+                  value={reminder.isEnabled}
+                  onValueChange={(next) => {
+                    tapHaptic("selection");
+                    toggleReminder(reminder, next);
+                  }}
+                  accessibilityLabel={`Lembrete ${reminder.title}`}
+                  trackColor={{ false: colors.lineStrong, true: colors.ember }}
+                  thumbColor={colors.onEmber}
+                  ios_backgroundColor={colors.lineStrong}
+                />
+              </View>
+            }
+          />
+        ))}
+        {reminders.data?.length === 0 ? (
+          <SettingsItem icon={ClockOutlineIcon} title="Nenhum lembrete ainda" subtitle="Crie o primeiro logo abaixo." />
+        ) : null}
+        {!reminders.data ? (
+          <SettingsItem
+            title={reminders.error ? "Não deu para carregar" : "Carregando…"}
+            subtitle={reminders.error ? "Toque para tentar de novo." : null}
+            onPress={reminders.error ? () => void reminders.refresh() : undefined}
+          />
+        ) : null}
+      </SettingsGroup>
+
+      <SettingsGroup title="Novo lembrete">
+        <SettingsBlock>
           <TextField
-            label="Texto"
+            label="O que lembrar"
             value={title}
             onChangeText={setTitle}
             maxLength={120}
             placeholder="Ex.: Separar a roupa do treino"
           />
-
-          <SettingsSection>
-            <SettingsRow
-              label="Horário"
-              value={minuteLabel(minute)}
-              last
-              onPress={() => setMinute(nextHalfHour(minute))}
-            />
-          </SettingsSection>
-
-          {error ?? preferences.actionError ? (
-            <AppText family="manrope" weight="medium" style={{ fontSize: 12.5, color: colors.danger }}>
-              {error ?? preferences.actionError}
-            </AppText>
-          ) : null}
-
+        </SettingsBlock>
+        <SettingsStepper
+          icon={ClockOutlineIcon}
+          title="Horário"
+          value={minuteLabel(minute)}
+          onDecrement={() => setMinute(stepMinute(minute, -STEP))}
+          onIncrement={() => setMinute(stepMinute(minute, STEP))}
+        />
+        <DaysPicker value={days} onChange={setDays} />
+        <SettingsBlock>
           <PrimaryButton
             label="Criar lembrete"
             withArrow={false}
             loading={saving}
             onPress={() => void createReminder()}
           />
-        </View>
-      </KeyboardAwareScrollView>
-    </Screen>
+        </SettingsBlock>
+      </SettingsGroup>
+
+      <SettingsMessage message={error ?? preferences.actionError} />
+    </SettingsPage>
   );
 }

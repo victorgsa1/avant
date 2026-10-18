@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Pressable } from "@/components/ui/Pressable";
 import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
@@ -15,9 +16,12 @@ import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
+import { DayPill, DaySeparator } from "@/features/chat/components/DaySeparator";
 import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { MessageComposer } from "@/features/chat/components/MessageComposer";
 import { useConversation, type PendingMessage } from "@/features/chat/hooks/useConversation";
+import { useFloatingDay } from "@/features/chat/hooks/useFloatingDay";
+import { isSameDay } from "@/features/chat/format";
 import { blocksApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
 
@@ -44,6 +48,7 @@ export default function ConversationScreen() {
   } = useConversation(conversationId);
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const floatingDay = useFloatingDay();
 
   const other = useMemo(
     () => conversation?.participants.find((participant) => participant.id !== user?.id) ?? null,
@@ -132,16 +137,23 @@ export default function ConversationScreen() {
       const isMine = item.sender?.id === user?.id || (item.pending && item.sender === null);
       // Lista invertida: o "anterior" visualmente é o próximo do array.
       const previous = messages[index + 1];
+      // Primeira mensagem do dia ganha o separador com a data por cima.
+      const startsDay = !previous || !isSameDay(previous.createdAt, item.createdAt);
       const showSender =
-        conversation?.type === "GROUP" && previous?.sender?.id !== item.sender?.id;
+        conversation?.type === "GROUP" && (startsDay || previous?.sender?.id !== item.sender?.id);
 
+      // Um View só: na lista invertida a célula é `column-reverse`, e um
+      // Fragment deixaria o separador embaixo da bolha.
       return (
-        <MessageBubble
-          message={item}
-          isMine={!!isMine}
-          showSender={!!showSender}
-          onLongPress={confirmDelete}
-        />
+        <View>
+          {startsDay ? <DaySeparator iso={item.createdAt} /> : null}
+          <MessageBubble
+            message={item}
+            isMine={!!isMine}
+            showSender={!!showSender}
+            onLongPress={confirmDelete}
+          />
+        </View>
       );
     },
     // `confirmDelete` só depende de `deleteMessage`, que é estável.
@@ -204,29 +216,43 @@ export default function ConversationScreen() {
       ) : null}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          inverted
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 14, flexGrow: 1 }}
-          onEndReached={() => void loadMore()}
-          onEndReachedThreshold={0.4}
-          keyboardDismissMode="interactive"
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={{ paddingVertical: 14 }}>
-                <ActivityIndicator size="small" color={colors.textFaint} />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <EmptyState
-              title="Comece a conversa"
-              description="As mensagens ficam só entre vocês e o Avant."
-            />
-          }
-        />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            {...floatingDay.listProps}
+            inverted
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 14, flexGrow: 1 }}
+            onEndReached={() => void loadMore()}
+            onEndReachedThreshold={0.4}
+            keyboardDismissMode="interactive"
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 14 }}>
+                  <ActivityIndicator size="small" color={colors.textFaint} />
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <EmptyState
+                title="Comece a conversa"
+                description="As mensagens ficam só entre vocês e o Avant."
+              />
+            }
+          />
+  
+          {floatingDay.iso ? (
+            <Animated.View
+              entering={FadeIn.duration(150)}
+              exiting={FadeOut.duration(250)}
+              pointerEvents="none"
+              style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center" }}
+            >
+              <DayPill iso={floatingDay.iso} floating />
+            </Animated.View>
+          ) : null}
+        </View>
 
         {!hasMore && messages.length > 0 ? (
           <AppText

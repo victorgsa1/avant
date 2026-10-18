@@ -1,9 +1,9 @@
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui/AppText";
 import { HeartFilledIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { PeakArt } from "./illustrations";
+import { ONBOARDING_ART } from "../art";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 type StartStepProps = {
@@ -26,9 +26,8 @@ export function StartStep({ onStart, habits = [] }: StartStepProps) {
       >
         <View style={{ flex: 1, minHeight: 20 }} />
 
-        <View style={{ width: 240, height: 196 }}>
-          <PeakArt />
-        </View>
+        {/* "Você já escolheu a direção" — a bússola. */}
+        <Image source={ONBOARDING_ART.bussola} resizeMode="contain" style={{ width: 240, height: 196 }} />
 
         <AppText
           family="archivo"

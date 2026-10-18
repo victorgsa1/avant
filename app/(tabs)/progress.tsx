@@ -1,35 +1,58 @@
-import { RefreshControl, ScrollView, View } from "react-native";
+import { useState } from "react";
+import { RefreshControl, ScrollView } from "react-native";
+import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
+import { useTabBarClearance } from "@/components/navigation/tabBar";
 import { ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
+import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
-import { AreaProgressList } from "@/features/progress/components/AreaProgressList";
-import { ConsistencyMountainCard } from "@/features/progress/components/ConsistencyMountainCard";
-import { InsightsSection } from "@/features/progress/components/InsightsSection";
-import { LearnedInsightCard } from "@/features/progress/components/LearnedInsightCard";
-import { ProgressHeader } from "@/features/progress/components/ProgressHeader";
-import { WeeklyConsistency } from "@/features/progress/components/WeeklyConsistency";
-import { useProgressData } from "@/features/progress/hooks/useProgressData";
-
-function greeting(date = new Date()): string {
-  const hour = date.getHours();
-  if (hour < 12) return "Bom dia";
-  if (hour < 18) return "Boa tarde";
-  return "Boa noite";
-}
+import { HomeTopBar } from "@/features/home/components/HomeTopBar";
+import { AdjustmentsTimeline } from "@/features/progress/components/AdjustmentsTimeline";
+import { FollowUpCard } from "@/features/progress/components/FollowUpCard";
+import { HistoryCalendar } from "@/features/progress/components/HistoryCalendar";
+import { MonthTotals } from "@/features/progress/components/MonthTotals";
+import { MonthWeeksChart } from "@/features/progress/components/MonthWeeksChart";
+import { NoticedCard } from "@/features/progress/components/NoticedCard";
+import { OptionSheet } from "@/features/progress/components/OptionSheet";
+import { ProgressTitle } from "@/features/progress/components/ProgressTitle";
+import { RoutineHabits } from "@/features/progress/components/RoutineHabits";
+import { useProgressMonth } from "@/features/progress/hooks/useProgressMonth";
 
 export default function ProgressScreen() {
   const { colors } = useTheme();
+  const bottomClearance = useTabBarClearance();
   const { user } = useSession();
-  const { view, loading, refreshing, error, refresh, archiveInsight, refreshWithReview } =
-    useProgressData();
+  const {
+    view,
+    loading,
+    refreshing,
+    error,
+    refresh,
+    refreshWithReview,
+    selectMonth,
+    switchingMonth,
+    respond,
+    busyId,
+    actionError,
+    archiveInsight,
+  } = useProgressMonth();
 
-  const firstName = user?.name?.split(" ")[0] ?? "";
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+
+  const avatarInitial = (user?.name ?? "?").trim().charAt(0).toUpperCase();
+  const topBar = (
+    <HomeTopBar
+      avatarInitial={avatarInitial}
+      hasNotification={false}
+      onPressBell={() => router.push("/notifications")}
+    />
+  );
 
   if (loading && !view) {
     return (
       <Screen>
-        <ProgressHeader greeting={greeting()} name={firstName} hasNotification={false} />
+        {topBar}
         <ScreenLoading />
       </Screen>
     );
@@ -38,7 +61,7 @@ export default function ProgressScreen() {
   if (error && !view) {
     return (
       <Screen>
-        <ProgressHeader greeting={greeting()} name={firstName} hasNotification={false} />
+        {topBar}
         <ScreenError message={error} onRetry={() => void refresh()} />
       </Screen>
     );
@@ -51,7 +74,7 @@ export default function ProgressScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: bottomClearance }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -60,35 +83,68 @@ export default function ProgressScreen() {
           />
         }
       >
-        <ProgressHeader greeting={greeting()} name={firstName} hasNotification={false} />
+        {topBar}
 
-        <WeeklyConsistency week={view.week} doneCount={view.weeklyDone} totalCount={view.weeklyTotal} />
-
-        <ConsistencyMountainCard
-          pct={view.consistencyPct}
-          deltaLabel={view.consistencyDeltaLabel}
-          trend={view.consistencyTrend}
-          series={view.series}
-          startLabel={view.chartStartLabel}
-          endLabel={view.chartEndLabel}
+        <ProgressTitle
+          monthName={view.monthName}
+          year={view.year}
+          loading={switchingMonth}
+          onPressMonth={() => setMonthPickerOpen(true)}
         />
 
-        {view.insights.length > 0 ? (
-          <View className="px-5 pt-[34px]" style={{ gap: 12 }}>
-            {view.insights.map((insight) => (
-              <LearnedInsightCard
-                key={insight.id}
-                insight={insight}
-                onArchive={archiveInsight}
-              />
-            ))}
-          </View>
+        <MonthTotals done={view.totals.done} planned={view.totals.planned} pct={view.totals.pct} />
+
+        <MonthWeeksChart weeks={view.weeks} />
+
+        {view.noticed ? (
+          <NoticedCard
+            noticed={view.noticed}
+            busy={busyId === view.noticed.id}
+            onApply={(id) => respond(id, "apply")}
+            onDismiss={(id) => respond(id, "dismiss")}
+            onArchiveInsight={archiveInsight}
+          />
         ) : null}
 
-        <InsightsSection comeback={view.comeback} bestWindow={view.bestWindow} />
+        {actionError ? (
+          <AppText
+            family="manrope"
+            weight="medium"
+            className="px-6"
+            style={{ marginTop: 10, fontSize: 12.5, color: colors.danger }}
+          >
+            {actionError}
+          </AppText>
+        ) : null}
 
-        {view.areas.length > 0 ? <AreaProgressList areas={view.areas} /> : null}
+        {view.followUp ? <FollowUpCard followUp={view.followUp} /> : null}
+
+        <RoutineHabits
+          key={`habits-${view.month}`}
+          habits={view.habits}
+          onSeeAll={() => router.push("/settings/habits")}
+        />
+
+        <HistoryCalendar
+          key={`calendar-${view.month}`}
+          month={view.month}
+          monthName={view.monthName}
+          today={view.today}
+          calendar={view.calendar}
+          defaultHabitId={view.primaryHabitId}
+        />
+
+        {view.timeline.length > 0 ? <AdjustmentsTimeline items={view.timeline} /> : null}
       </ScrollView>
+
+      <OptionSheet
+        visible={monthPickerOpen}
+        title="Escolher mês"
+        options={view.months}
+        selected={view.month}
+        onSelect={selectMonth}
+        onClose={() => setMonthPickerOpen(false)}
+      />
     </Screen>
   );
 }

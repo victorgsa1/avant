@@ -79,6 +79,11 @@ function RootNavigator() {
           {/* Sem voltar por gesto: a recompensa fecha o ciclo e leva para Hoje. */}
           <Stack.Screen name="action-reward" options={{ gestureEnabled: false }} />
           <Stack.Screen name="competition/[id]" />
+          <Stack.Screen name="join-competition" />
+          <Stack.Screen name="finished-competitions" />
+          <Stack.Screen name="add-friend" />
+          <Stack.Screen name="friend-requests" />
+          <Stack.Screen name="user/[id]" />
           <Stack.Screen name="chat/index" />
           <Stack.Screen name="chat/[id]" />
           <Stack.Screen name="chat/new-group" options={{ presentation: "modal" }} />

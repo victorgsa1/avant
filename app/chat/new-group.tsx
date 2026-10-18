@@ -93,7 +93,7 @@ export default function NewGroupScreen() {
           </View>
         ) : null}
 
-        <SettingsSection title="AMIGOS">
+        <SettingsSection title="Amigos">
           {(friends.data ?? []).length === 0 ? (
             <EmptyState
               title="Nenhum amigo ainda"

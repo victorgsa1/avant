@@ -252,7 +252,46 @@ export interface ProgressBucketRow {
 export type WeekDayStateResponse = "done" | "miss" | "today" | "next" | "rest";
 export type ExecutionPeriod = "MORNING" | "AFTERNOON" | "EVENING";
 
-/** `GET /v1/progress/overview` — a tela de Progresso inteira, calculada no servidor. */
+export type CalendarDayState = "done" | "minimum" | "missed" | "pending";
+
+/** `GET /v1/progress/month` — a tela de Progresso de um mês, calculada no servidor. */
+export interface ProgressMonthResponse {
+  /** AAAA-MM. */
+  month: string;
+  previousMonth: string;
+  today: string;
+  /** Meses que o seletor oferece, do atual para trás. */
+  months: string[];
+  /** Só a principal, como a consistência: complementar não infla o plano. */
+  totals: { done: number; planned: number; pct: number | null };
+  /** Sempre S1..S4 (1–7, 8–14, 15–21, 22–fim). */
+  weeks: { label: string; from: string; to: string; started: boolean; done: number; planned: number }[];
+  habits: {
+    id: string;
+    title: string;
+    iconKey: string | null;
+    role: HabitRole;
+    areaName: string | null;
+    perWeek: number;
+    /** Null quando o hábito não teve ação no mês anterior. */
+    previousPerWeek: number | null;
+  }[];
+  calendar: { date: string; entries: { habitId: string; title: string; state: CalendarDayState }[] }[];
+  followUp: {
+    adjustmentId: string;
+    habitId: string | null;
+    habitTitle: string | null;
+    summary: string;
+    appliedOn: string;
+    windowDays: number;
+    before: { done: number; planned: number };
+    after: { done: number; planned: number };
+    afterComplete: boolean;
+  } | null;
+  timeline: { date: string; kind: "ADJUSTMENT" | "FIRST_SESSION"; title: string; detail: string | null }[];
+}
+
+/** `GET /v1/progress/overview` — consistência e semana, usados pela Hoje. */
 export interface ProgressOverviewResponse {
   identity: string | null;
   streak: { current: number; best: number };
@@ -310,6 +349,16 @@ export interface UserSearchResult extends PublicUser {
   relation: SocialRelation;
 }
 
+/** `GET /v1/users/:id` — o perfil de outra pessoa, só com o que é público. */
+export interface PublicProfileResponse extends PublicUser {
+  streakBest: number;
+  memberSince: string;
+  relation: SocialRelation;
+  /** O pedido pendente entre vocês (recebido ou enviado), para responder do perfil. */
+  requestId: string | null;
+  friendsSince: string | null;
+}
+
 export type SendFriendRequestResult =
   | { status: "requested"; request: FriendRequestResponse }
   | { status: "friends"; friend: PublicUser };
@@ -337,13 +386,32 @@ export interface RankingResponse {
   rows: RankingRow[];
 }
 
+export type InsightType =
+  | "BEST_TIME"
+  | "CONSISTENCY"
+  | "RECOVERY"
+  | "DIFFICULT_DAY"
+  | "BEHAVIOR_PATTERN"
+  | "ROUTINE_STABILITY";
+
+/** Os totais de uma semana fechada — só isso sai do servidor para o feed. */
+export interface WeekTally {
+  planned: number;
+  completed: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+}
+
 export interface SocialFeedItem {
   id: string;
   user: { id: string; name: string; avatarUrl: string | null };
+  type: InsightType;
   title: string;
   body: string;
   periodStart: string | null;
   periodEnd: string | null;
+  /** Esta semana contra a anterior do mesmo amigo, quando houver. */
+  comparison: { current: WeekTally; previous: WeekTally | null } | null;
   likeCount: number;
   likedByMe: boolean;
   createdAt: string;
@@ -494,6 +562,8 @@ export interface CompetitionResponse {
   myScore: number;
   participantCount: number;
   maxParticipants: number;
+  /** "Entrar com código". Só vem para quem já participa. */
+  joinCode: string | null;
   standings: CompetitionStanding[];
   pendingInvites: { userId: string; name: string; username: string }[];
 }

@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { Image } from "react-native";
 import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { TextField } from "@/components/ui/TextField";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { SettingsBlock, SettingsGroup, SettingsMessage } from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { usersApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+
+const COMPASS = require("../../assets/onboarding/bussola.png");
+
+function updatedLabel(iso: string | undefined): string | undefined {
+  if (!iso) return undefined;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return `Atualizada em ${date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}.`;
+}
 
 /**
  * A "direção" é o que a pessoa escreveu no onboarding sobre quem quer ser.
@@ -20,7 +27,7 @@ import { userMessage } from "@/services/http/ApiError";
  */
 export default function IdentityScreen() {
   const { colors } = useTheme();
-  const identity = useAsyncResource(useCallback(() => usersApi.getIdentity(), []));
+  const identity = useAsyncResource(useCallback(() => usersApi.getIdentity(), []), { refetchOnFocus: false });
 
   const [statement, setStatement] = useState("");
   const [why, setWhy] = useState("");
@@ -28,12 +35,13 @@ export default function IdentityScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Preenche uma vez só: recarregar não pode apagar o que está sendo digitado.
   useEffect(() => {
-    if (hydrated || !identity.data) return;
-    setStatement(identity.data.statement ?? "");
-    setWhy(identity.data.whyItMatters ?? "");
+    if (hydrated || identity.loading || identity.error) return;
+    setStatement(identity.data?.statement ?? "");
+    setWhy(identity.data?.whyItMatters ?? "");
     setHydrated(true);
-  }, [hydrated, identity.data]);
+  }, [hydrated, identity.data, identity.loading, identity.error]);
 
   const save = async () => {
     if (statement.trim().length < 10) {
@@ -56,26 +64,30 @@ export default function IdentityScreen() {
   };
 
   return (
-    <Screen>
-      <PageHeader title="Sua direção" onBack={() => router.back()} />
-
-      {identity.loading && !identity.data && !hydrated ? <ScreenLoading /> : null}
-
-      <KeyboardAwareScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 16 }}>
+    <SettingsPage
+      title="Sua direção"
+      subtitle="Quem você quer se tornar"
+      keyboard
+      loading={!hydrated && !identity.error}
+      error={hydrated ? null : identity.error}
+      onRetry={() => void identity.refresh()}
+    >
+      <SettingsGroup>
+        <SettingsBlock style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Image source={COMPASS} style={{ width: 50, height: 60 }} resizeMode="contain" />
           <AppText
             family="manrope"
             weight="medium"
-            style={{ fontSize: 13, lineHeight: 19.5, color: colors.textMuted }}
+            style={{ flex: 1, fontSize: 14, lineHeight: 20, color: colors.textMuted }}
           >
-            Isso não é uma meta com prazo. É a direção que o Avant usa para
-            entender o que faz sentido propor para você.
+            Isso não é uma meta com prazo. É a direção que o Avant usa para entender o que faz sentido propor para
+            você.
           </AppText>
+        </SettingsBlock>
+      </SettingsGroup>
 
+      <SettingsGroup title="Em suas palavras" footer={updatedLabel(identity.data?.updatedAt)}>
+        <SettingsBlock>
           <TextField
             label="Quem você quer se tornar"
             value={statement}
@@ -83,8 +95,8 @@ export default function IdentityScreen() {
             multiline
             numberOfLines={4}
             maxLength={240}
+            placeholder="Ex.: Alguém que cuida do corpo sem precisar de motivação."
           />
-
           <TextField
             label="Por que isso importa"
             value={why}
@@ -93,21 +105,10 @@ export default function IdentityScreen() {
             numberOfLines={3}
             maxLength={500}
           />
-
-          {error ? (
-            <AppText family="manrope" weight="medium" style={{ fontSize: 12.5, color: colors.danger }}>
-              {error}
-            </AppText>
-          ) : null}
-
-          <PrimaryButton
-            label="Salvar"
-            withArrow={false}
-            loading={saving}
-            onPress={() => void save()}
-          />
-        </View>
-      </KeyboardAwareScrollView>
-    </Screen>
+          <PrimaryButton label="Salvar direção" withArrow={false} loading={saving} onPress={() => void save()} />
+        </SettingsBlock>
+      </SettingsGroup>
+      <SettingsMessage message={error} />
+    </SettingsPage>
   );
 }

@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
 import { darkColors, lightColors, type ThemeColors } from "@/constants/theme";
 import { uiPreferences, type ThemeMode } from "@/services/storage/preferencesStorage";
 
@@ -63,6 +63,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setMode,
     };
   }, [mode, setMode, systemScheme]);
+
+  // A escolha de Aparência também vale para o lado nativo: tab bar de Liquid
+  // Glass, alertas, teclado. Sem isto eles seguem o aparelho — app no escuro
+  // com iPhone no claro deixava a tab bar branca a cada troca de aba até a
+  // tela rolar. Com o modo fixo, `useColorScheme` passa a devolver esse valor;
+  // "unspecified" devolve o controle ao aparelho.
+  useEffect(() => {
+    Appearance.setColorScheme(mode === "system" ? "unspecified" : mode);
+  }, [mode]);
 
   // A view raiz nativa fica embaixo da árvore do React; sem isto ela
   // continua com a cor de splash e pisca claro ao abrir no escuro.

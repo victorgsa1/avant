@@ -62,6 +62,8 @@ export type ThemeColors = {
   paperSunken: string;
   onPaper: string;
   onPaperMuted: string;
+  /** Pêssego sobre o papel (o círculo do avatar no cartão do Perfil). */
+  paperAccent: string;
 
   // Maximum contrast against the page background, and the content that sits
   // on it. Unlike `inverse` these DO flip: near-black in light, near-white in
@@ -122,6 +124,7 @@ export const lightColors: ThemeColors = {
   paperSunken: "#EFE4D3",
   onPaper: "#241F1B",
   onPaperMuted: "#8C8175",
+  paperAccent: "#F6C9A4",
 
   contrast: "#000000",
   onContrast: "#FFFFFF",
@@ -189,6 +192,7 @@ export const darkColors: ThemeColors = {
   paperSunken: "#EFE4D3",
   onPaper: "#241F1B",
   onPaperMuted: "#8C8175",
+  paperAccent: "#F6C9A4",
 
   contrast: "#FFFFFF",
   onContrast: "#000000",
@@ -207,6 +211,10 @@ export const brandColors = {
   googleGreen: "#34A853",
   googleYellow: "#FBBC05",
   googleRed: "#EA4335",
+  // Logo Avant: as cores da arte, não as do tema (`ember` é outro laranja).
+  avantOrange: "#FD6109",
+  avantInk: "#222222",
+  avantWhite: "#FFFFFF",
 } as const;
 
 // Single typeface (Inter) across the whole app. The "archivo"/"manrope" keys

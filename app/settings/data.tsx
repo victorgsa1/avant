@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { Alert, Platform, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { router } from "expo-router";
-import { Screen } from "@/components/layout/Screen";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { AppText } from "@/components/ui/AppText";
+import { PeopleIcon, SparkleIcon } from "@/components/ui/icons";
+import { ChecklistIcon, TrashIcon, UserOutlineIcon } from "@/components/ui/icons/settings";
 import { TextField } from "@/components/ui/TextField";
-import { SettingsRow, SettingsSection } from "@/components/ui/SettingsRow";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
+import {
+  SettingsBlock,
+  SettingsGroup,
+  SettingsItem,
+  SettingsMessage,
+} from "@/features/settings/components/SettingsGroup";
+import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { usersApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+import { confirmAction } from "@/services/native/confirm";
 
 const CONFIRMATION = "APAGAR";
 
@@ -31,74 +35,46 @@ export default function DataScreen() {
 
   const armed = confirmation.trim().toUpperCase() === CONFIRMATION;
 
-  const deleteAccount = () => {
-    const run = async () => {
-      setDeleting(true);
-      setError(null);
-      try {
-        await usersApi.deleteMe();
-        await signOut();
-      } catch (caught) {
-        setError(userMessage(caught));
-        setDeleting(false);
-      }
-    };
-
-    if (Platform.OS === "web") {
-      void run();
-      return;
-    }
-
-    Alert.alert(
-      "Apagar sua conta?",
-      "Isso remove seu histórico, seu progresso e suas conversas. Não dá para desfazer.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Apagar conta", style: "destructive", onPress: () => void run() },
-      ],
-    );
-  };
+  const deleteAccount = () =>
+    confirmAction({
+      title: "Apagar sua conta?",
+      message: "Isso remove seu histórico, seu progresso e suas conversas. Não dá para desfazer.",
+      confirmLabel: "Apagar conta",
+      destructive: true,
+      onConfirm: () => {
+        setDeleting(true);
+        setError(null);
+        void usersApi
+          .deleteMe()
+          .then(() => signOut())
+          .catch((caught) => {
+            setError(userMessage(caught));
+            setDeleting(false);
+          });
+      },
+    });
 
   return (
-    <Screen>
-      <PageHeader title="Dados e privacidade" onBack={() => router.back()} />
-
-      <KeyboardAwareScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 80 }}
+    <SettingsPage title="Dados e privacidade" subtitle="Seus dados e exclusão da conta" keyboard>
+      <SettingsGroup
+        title="O que o Avant guarda"
+        footer="O Avant registra o que você planeja e o que acontece com esse plano. É isso que permite adaptar o plano ao seu comportamento real."
       >
-        <SettingsSection
-          title="O QUE O AVANT GUARDA"
-          footer="O Avant registra o que você planeja e o que acontece com esse plano. É isso que permite adaptar o plano ao seu comportamento real."
-        >
-          <SettingsRow label="Conta" description="Nome, @usuário e e-mail" />
-          <SettingsRow label="Plano" description="Áreas, hábitos e ações do dia" />
-          <SettingsRow
-            label="Comportamento"
-            description="Conclusões, faltas, horários e retomadas"
-          />
-          <SettingsRow label="Social" description="Amizades, atividade e conversas" last />
-        </SettingsSection>
+        <SettingsItem icon={UserOutlineIcon} title="Conta" subtitle="Nome, @usuário e e-mail" />
+        <SettingsItem icon={ChecklistIcon} title="Plano" subtitle="Áreas, hábitos e ações do dia" />
+        <SettingsItem icon={SparkleIcon} title="Comportamento" subtitle="Conclusões, faltas, horários e retomadas" />
+        <SettingsItem icon={PeopleIcon} title="Social" subtitle="Amizades, atividade e conversas" />
+      </SettingsGroup>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 28, gap: 14 }}>
-          <AppText
-            family="archivo"
-            weight="extraBold"
-            style={{ fontSize: 13, letterSpacing: 0.2, color: colors.danger, paddingLeft: 4 }}
-          >
-            APAGAR CONTA
+      <SettingsGroup title="Apagar conta" tone="danger">
+        <SettingsBlock>
+          <AppText family="manrope" weight="medium" style={{ fontSize: 14, lineHeight: 20, color: colors.textMuted }}>
+            {user?.email ? `A conta ${user.email} ` : "A sua conta "}e tudo ligado a ela serão removidos. Escreva{" "}
+            <AppText family="manrope" weight="bold" style={{ color: colors.text }}>
+              {CONFIRMATION}
+            </AppText>{" "}
+            para liberar o botão.
           </AppText>
-
-          <AppText
-            family="manrope"
-            weight="medium"
-            style={{ fontSize: 13, lineHeight: 19.5, color: colors.textMuted, paddingHorizontal: 4 }}
-          >
-            {user?.email ? `A conta ${user.email} ` : "A sua conta "}
-            e tudo ligado a ela serão removidos. Escreva {CONFIRMATION} para liberar o botão.
-          </AppText>
-
           <TextField
             label="Confirmação"
             value={confirmation}
@@ -107,24 +83,16 @@ export default function DataScreen() {
             autoCorrect={false}
             placeholder={CONFIRMATION}
           />
-
-          {error ? (
-            <AppText family="manrope" weight="medium" style={{ fontSize: 12.5, color: colors.danger }}>
-              {error}
-            </AppText>
-          ) : null}
-
-          <SettingsSection>
-            <SettingsRow
-              label={deleting ? "Apagando…" : "Apagar minha conta"}
-              destructive
-              last
-              disabled={!armed || deleting}
-              onPress={deleteAccount}
-            />
-          </SettingsSection>
-        </View>
-      </KeyboardAwareScrollView>
-    </Screen>
+        </SettingsBlock>
+        <SettingsItem
+          icon={TrashIcon}
+          tone="danger"
+          title={deleting ? "Apagando…" : "Apagar minha conta"}
+          disabled={!armed || deleting}
+          onPress={deleteAccount}
+        />
+      </SettingsGroup>
+      <SettingsMessage message={error} />
+    </SettingsPage>
   );
 }
