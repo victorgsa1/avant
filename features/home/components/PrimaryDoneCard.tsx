@@ -1,85 +1,109 @@
-import { View } from "react-native";
+import { Image, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { AppText } from "@/components/ui/AppText";
-import { DecorativeRings } from "@/components/ui/DecorativeRings";
-import { CheckmarkIcon, FlameIcon } from "@/components/ui/icons";
+import { CheckmarkIcon, ClockIcon, FlameIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { artFor } from "../activityAssets";
 
 type PrimaryDoneCardProps = {
   title: string;
+  /** Chave do desenho, a mesma do card antes de concluir. */
+  iconKey: string | null;
   completedAt: string | null;
   xp: number;
   streakDays: number;
 };
 
+/** "18h32" — no mesmo formato do horário do card antes de concluir. */
 function timeOf(iso: string | null): string | null {
   if (!iso) return null;
   const date = new Date(iso);
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return `${String(date.getHours()).padStart(2, "0")}h${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-/** A principal depois de feita: o mesmo card, agora como o troféu do dia. */
-export function PrimaryDoneCard({ title, completedAt, xp, streakDays }: PrimaryDoneCardProps) {
+/**
+ * A principal depois de feita: a mesma folha clara do compromisso, com o
+ * mesmo desenho — o botão dá lugar ao que o dia rendeu.
+ */
+export function PrimaryDoneCard({ title, iconKey, completedAt, xp, streakDays }: PrimaryDoneCardProps) {
   const { colors } = useTheme();
+  const art = artFor(iconKey, title);
   const time = timeOf(completedAt);
 
   return (
-    <View className="mt-[30px] px-5">
+    <View className="px-5" style={{ marginTop: 24 }}>
       <View
-        className="overflow-hidden rounded-[30px] px-[22px] pb-[22px] pt-[22px]"
-        style={{ backgroundColor: colors.ember, boxShadow: `0 20px 40px ${colors.ember}38` }}
+        className="overflow-hidden rounded-[30px]"
+        style={{ backgroundColor: colors.paper, padding: 22 }}
       >
-        <View pointerEvents="none" style={{ position: "absolute", right: -96, top: -108, opacity: 0.12 }}>
-          <DecorativeRings
-            size={300}
-            rings={[
-              { radius: 144, strokeWidth: 1.4, color: colors.surface },
-              { radius: 112, strokeWidth: 14, color: colors.surface },
-              { radius: 82, strokeWidth: 1.4, color: colors.surface },
-            ]}
-          />
+        {art.kind === "illustration" ? (
+          <View
+            pointerEvents="none"
+            style={{ position: "absolute", right: 8, top: 46, width: 148, height: 138 }}
+          >
+            <Image source={art.source} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
+          </View>
+        ) : (
+          <View pointerEvents="none" style={{ position: "absolute", right: 30, top: 68, opacity: 0.45 }}>
+            <art.Icon size={86} color={colors.onPaperMuted} />
+          </View>
+        )}
+
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center" style={{ gap: 9 }}>
+            <Animated.View
+              entering={ZoomIn.springify().damping(12)}
+              className="items-center justify-center rounded-full"
+              style={{ width: 22, height: 22, backgroundColor: colors.ember }}
+            >
+              <CheckmarkIcon size={10} color={colors.onEmber} />
+            </Animated.View>
+            <AppText family="manrope" weight="bold" style={{ fontSize: 13.5, color: colors.onPaper }}>
+              Principal feita
+            </AppText>
+          </View>
+
+          {time ? (
+            <View className="flex-row items-center" style={{ gap: 7 }}>
+              <ClockIcon size={15} color={colors.onPaperMuted} />
+              <AppText family="manrope" weight="bold" style={{ fontSize: 13.5, color: colors.onPaperMuted }}>
+                {time}
+              </AppText>
+            </View>
+          ) : null}
         </View>
 
-        <View className="flex-row items-center gap-3">
-          <Animated.View
-            entering={ZoomIn.springify().damping(12)}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors.onEmber,
-            }}
+        {/* Reserva a faixa da direita para o desenho: o texto quebra antes. */}
+        <View style={{ marginTop: 16, paddingRight: art.kind === "illustration" ? 104 : 92 }}>
+          <AppText
+            family="archivo"
+            weight="black"
+            style={{ fontSize: 40, lineHeight: 44, letterSpacing: -1.8, color: colors.onPaper }}
           >
-            <CheckmarkIcon size={18} color={colors.ember} />
-          </Animated.View>
-          <AppText family="manrope" weight="bold" style={{ fontSize: 13, color: `${colors.onEmber}EB` }}>
+            {title}
+          </AppText>
+          <AppText
+            family="manrope"
+            weight="semiBold"
+            style={{ marginTop: 6, fontSize: 14.5, lineHeight: 20, color: colors.onPaperMuted }}
+          >
             {time ? `Feita hoje às ${time}` : "Feita hoje"}
           </AppText>
         </View>
 
-        <AppText
-          family="archivo"
-          weight="black"
-          style={{ marginTop: 16, fontSize: 36, lineHeight: 40, letterSpacing: -1.6, color: colors.onEmber }}
-        >
-          {title}
-        </AppText>
-
-        <View className="mt-4 flex-row items-center gap-2">
-          <View className="rounded-full" style={{ backgroundColor: colors.onEmber, paddingVertical: 6, paddingHorizontal: 12 }}>
-            <AppText family="archivo" weight="extraBold" style={{ fontSize: 13, color: colors.ember }}>
+        <View className="flex-row items-center" style={{ marginTop: 20, gap: 8 }}>
+          <View className="rounded-full" style={{ backgroundColor: colors.ember, paddingVertical: 10, paddingHorizontal: 16 }}>
+            <AppText family="archivo" weight="extraBold" style={{ fontSize: 15, color: colors.onEmber }}>
               +{xp} xp
             </AppText>
           </View>
           {streakDays > 0 ? (
             <View
-              className="flex-row items-center gap-1.5 rounded-full"
-              style={{ borderWidth: 1, borderColor: `${colors.onEmber}73`, paddingVertical: 6, paddingHorizontal: 12 }}
+              className="flex-row items-center rounded-full"
+              style={{ gap: 6, backgroundColor: colors.paperSunken, paddingVertical: 10, paddingHorizontal: 14 }}
             >
-              <FlameIcon size={13} color={colors.onEmber} />
-              <AppText family="manrope" weight="bold" style={{ fontSize: 12, color: colors.onEmber }}>
+              <FlameIcon size={14} color={colors.ember} />
+              <AppText family="manrope" weight="bold" style={{ fontSize: 13.5, color: colors.onPaper }}>
                 {streakDays} {streakDays === 1 ? "dia seguido" : "dias seguidos"}
               </AppText>
             </View>

@@ -22,7 +22,7 @@ export function StartStep({ onStart, habits = [] }: StartStepProps) {
     <View className="flex-1">
       <View
         className="flex-1 items-center px-[30px]"
-        style={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }}
+        style={{ paddingTop: 24, paddingBottom: insets.bottom + 24 }}
       >
         <View style={{ flex: 1, minHeight: 20 }} />
 

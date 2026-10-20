@@ -1,11 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Platform,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Pressable } from "@/components/ui/Pressable";
@@ -24,6 +18,7 @@ import { useFloatingDay } from "@/features/chat/hooks/useFloatingDay";
 import { isSameDay } from "@/features/chat/format";
 import { blocksApi } from "@/services/api";
 import { userMessage } from "@/services/http/ApiError";
+import { showAlert, type AlertButton } from "@/services/native/alert";
 
 export default function ConversationScreen() {
   const { colors } = useTheme();
@@ -63,9 +58,7 @@ export default function ConversationScreen() {
   const openActions = () => {
     if (!conversation) return;
 
-    const options: { text: string; style?: "cancel" | "destructive"; onPress?: () => void }[] = [
-      { text: "Cancelar", style: "cancel" },
-    ];
+    const options: AlertButton[] = [{ text: "Cancelar", style: "cancel" }];
 
     if (conversation.type === "GROUP") {
       options.push({
@@ -94,23 +87,13 @@ export default function ConversationScreen() {
       });
     }
 
-    if (Platform.OS === "web") {
-      // Sem Alert no web: a ação principal roda direto.
-      options.find((option) => option.style === "destructive")?.onPress?.();
-      return;
-    }
-    Alert.alert(conversation.title, undefined, options);
+    showAlert(conversation.title, undefined, options);
   };
 
   const confirmDelete = (message: PendingMessage) => {
-    const run = () => void deleteMessage(message.id);
-    if (Platform.OS === "web") {
-      run();
-      return;
-    }
-    Alert.alert("Apagar mensagem?", "Ela some para todo mundo na conversa.", [
+    showAlert("Apagar mensagem?", "Ela some para todo mundo na conversa.", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Apagar", style: "destructive", onPress: run },
+      { text: "Apagar", style: "destructive", onPress: () => void deleteMessage(message.id) },
     ]);
   };
 

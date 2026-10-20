@@ -2,7 +2,7 @@ import { router, usePathname } from "expo-router";
 import { Tabs, TabList, TabSlot, TabTrigger } from "expo-router/ui";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useCallback, useState } from "react";
-import { Alert, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AvantButton } from "@/components/navigation/AvantButton";
 import { AvantMenu, type AvantMenuAction } from "@/components/navigation/AvantMenu";
@@ -10,6 +10,7 @@ import { SimpleTabBar } from "@/components/navigation/SimpleTabBar";
 import { CUSTOM_TAB_BAR_HEIGHT, NATIVE_TAB_BAR_TOP, USES_NATIVE_TABS } from "@/components/navigation/tabBar";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { DevResetOnboardingButton } from "@/features/onboarding/components/DevResetOnboardingButton";
+import { showAlert } from "@/services/native/alert";
 import { tapHaptic } from "@/services/native/haptics";
 
 const ROUTES = ["/", "/social", "/progress", "/profile"];
@@ -35,7 +36,7 @@ function useAvantMenu() {
       return;
     }
     // "Algo mudou", "Novo objetivo" e "Registrar algo" ainda não têm tela.
-    Alert.alert("Em breve", "Essa opção chega numa das próximas atualizações.");
+    showAlert("Em breve", "Essa opção chega numa das próximas atualizações.");
   }, []);
   return { open, close, toggle, select };
 }

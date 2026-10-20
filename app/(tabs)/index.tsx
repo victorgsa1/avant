@@ -182,6 +182,7 @@ export default function HojeScreen() {
         ) : primary && primary.status === "COMPLETED" ? (
           <PrimaryDoneCard
             title={primary.title}
+            iconKey={primary.iconKey}
             completedAt={primary.completedAt}
             xp={primary.awardedXp}
             streakDays={view.streakDays}

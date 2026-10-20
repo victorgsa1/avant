@@ -105,6 +105,9 @@ export function TextField({ label, error, hint, secureTextEntry, ...inputProps }
             // parágrafo próprio, este campo herda o `lineHeight` de um campo
             // multilinha anterior e o placeholder sai cortado embaixo. O
             // `textAlign` explícito obriga o RN a mandar um parágrafo novo.
+            // O `letterSpacing` é atributo do texto, não do parágrafo: sem
+            // zerar, herda o espaçamento do campo de código da competição.
+            letterSpacing: 0,
             textAlign: "left",
           }}
         />

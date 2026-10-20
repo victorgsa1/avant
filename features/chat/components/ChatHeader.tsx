@@ -1,6 +1,5 @@
 import { View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui/AppText";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -14,14 +13,13 @@ type ChatHeaderProps = {
 
 export function ChatHeader({ title, subtitle, onBack, right }: ChatHeaderProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
 
   return (
     <View
       className="flex-row items-center"
       style={{
         gap: 12,
-        paddingTop: insets.top + 12,
+        paddingTop: 12,
         paddingBottom: 14,
         paddingHorizontal: 20,
         borderBottomWidth: 1,

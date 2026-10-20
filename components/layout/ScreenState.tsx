@@ -1,5 +1,5 @@
 import { ActivityIndicator, Image, View } from "react-native";
-import type { ImageSourcePropType } from "react-native";
+import type { ImageSourcePropType, StyleProp, ViewProps, ViewStyle } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -55,21 +55,35 @@ export function ScreenError({ message, onRetry }: { message: string; onRetry?: (
   );
 }
 
-/** Lista vazia — título curto + uma linha de contexto. */
+/**
+ * Lista vazia — título curto + uma linha de contexto.
+ *
+ * `style` e `onLayout` precisam chegar à View raiz: como
+ * `ListEmptyComponent`, a lista injeta por eles a desinversão (`scaleY: -1`)
+ * quando é `inverted` — sem isso o texto aparece de cabeça para baixo.
+ */
 export function EmptyState({
   title,
   description,
   action,
   image,
+  style,
+  onLayout,
 }: {
   title: string;
   description?: string;
   action?: { label: string; onPress: () => void };
   image?: ImageSourcePropType;
+  style?: StyleProp<ViewStyle>;
+  onLayout?: ViewProps["onLayout"];
 }) {
   const { colors } = useTheme();
   return (
-    <View className="items-center" style={{ paddingVertical: 34, paddingHorizontal: 26 }}>
+    <View
+      className="items-center"
+      style={[{ paddingVertical: 34, paddingHorizontal: 26 }, style]}
+      onLayout={onLayout}
+    >
       {image ? (
         <Image source={image} style={{ width: 88, height: 88, marginBottom: 14 }} resizeMode="contain" />
       ) : null}

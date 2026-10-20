@@ -96,7 +96,7 @@ export default function ActionRewardScreen() {
 
   return (
     <Screen>
-      <View className="flex-1 px-6" style={{ paddingTop: 52, paddingBottom: 34 }}>
+      <View className="flex-1 px-6" style={{ paddingTop: 24, paddingBottom: 34 }}>
         <View className="items-center">
           <Animated.View entering={ZoomIn.springify().damping(12).delay(120)}>
             <View

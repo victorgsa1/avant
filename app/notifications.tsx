@@ -1,35 +1,19 @@
-import { useCallback } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
-import { Pressable } from "@/components/ui/Pressable";
 import { router } from "expo-router";
 import { Screen } from "@/components/layout/Screen";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState, ScreenError, ScreenLoading } from "@/components/layout/ScreenState";
 import { AppText } from "@/components/ui/AppText";
+import { BellOutlineIcon } from "@/components/ui/icons/settings";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { NotificationRow } from "@/features/notifications/components/NotificationRow";
+import { groupByDay, unreadLabel } from "@/features/notifications/format";
+import { ONBOARDING_ART } from "@/features/onboarding/art";
+import { SettingsGroup, SettingsItem, SettingsPill } from "@/features/settings/components/SettingsGroup";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { notificationsApi } from "@/services/api";
 import type { NotificationResponse } from "@/services/http/types";
-
-/** Rótulo curto do tipo — o app não mostra o enum cru. */
-const TYPE_LABEL: Partial<Record<NotificationResponse["type"], string>> = {
-  REMINDER: "Lembrete",
-  BEHAVIORAL_REMINDER: "Lembrete",
-  RESCUE: "Resgate",
-  RECOVERY: "Retomada",
-  COMEBACK: "Retomada",
-  WEEKLY_PROGRESS: "Semana",
-  INSIGHT: "Descoberta",
-  ACHIEVEMENT: "Conquista",
-  STREAK: "Sequência",
-  FRIEND_REQUEST: "Amizade",
-  FRIEND_ACCEPTED: "Amizade",
-  COMPETITION_INVITE: "Competição",
-  COMPETITION_UPDATE: "Competição",
-  SOCIAL: "Social",
-  SYSTEM: "Avant",
-  GENERAL: "Avant",
-};
 
 /**
  * Vocabulário de deep link do backend → rota real do app.
@@ -48,15 +32,7 @@ function resolveRoute(route: string | undefined): string | null {
   return "/";
 }
 
-function timeAgo(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "agora";
-  if (minutes < 60) return `há ${minutes} min`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `há ${hours}h`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "ontem" : `há ${days} dias`;
-}
+const openSettings = () => router.push("/settings/notifications");
 
 /**
  * Caixa de entrada das intervenções.
@@ -67,9 +43,12 @@ function timeAgo(iso: string): string {
  */
 export default function NotificationsScreen() {
   const { colors } = useTheme();
-  const { data, loading, refreshing, error, refresh, mutate } = useAsyncResource(
+  const { data, loading, refreshing, error, refresh, reload, mutate } = useAsyncResource(
     useCallback(() => notificationsApi.list(), []),
   );
+
+  const sections = useMemo(() => (data ? groupByDay(data) : []), [data]);
+  const unreadCount = data ? data.filter((item) => item.readAt == null).length : 0;
 
   const open = (notification: NotificationResponse) => {
     if (!notification.readAt) {
@@ -88,9 +67,33 @@ export default function NotificationsScreen() {
     router.push(route as never);
   };
 
+  /**
+   * Otimista: o botão some na hora. Se o lote falhar, recarrega em silêncio
+   * para os pontos voltarem ao estado real do servidor.
+   */
+  const readAll = () => {
+    const now = new Date().toISOString();
+    mutate((current) => current.map((item) => (item.readAt ? item : { ...item, readAt: now })));
+    void notificationsApi.markAllRead().catch(() => void reload());
+  };
+
   return (
     <Screen>
-      <PageHeader title="Notificações" onBack={() => router.back()} />
+      <PageHeader
+        title="Notificações"
+        subtitle={data && data.length > 0 ? unreadLabel(unreadCount) : null}
+        onBack={() => router.back()}
+        right={
+          unreadCount > 0 ? (
+            <SettingsPill
+              label="Ler todas"
+              tone="accent"
+              onPress={readAll}
+              accessibilityLabel="Marcar todas as notificações como lidas"
+            />
+          ) : null
+        }
+      />
 
       {loading && !data ? <ScreenLoading /> : null}
       {error && !data ? <ScreenError message={error} onRetry={() => void refresh()} /> : null}
@@ -108,75 +111,64 @@ export default function NotificationsScreen() {
           }
         >
           {data.length === 0 ? (
-            <EmptyState
-              title="Nada por aqui ainda"
-              description="Lembretes, retomadas e descobertas sobre a sua rotina aparecem nesta tela."
-            />
+            <View
+              className="mx-4 rounded-[24px]"
+              style={{ marginTop: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}
+            >
+              <EmptyState
+                image={ONBOARDING_ART.relogio}
+                title="Nada por aqui ainda"
+                description="Lembretes, retomadas e descobertas sobre a sua rotina aparecem nesta tela."
+                action={{ label: "Ajustar lembretes", onPress: openSettings }}
+              />
+            </View>
           ) : null}
 
-          {data.map((notification) => {
-            const unread = notification.readAt == null;
-            return (
-              <Pressable
-                key={notification.id}
-                onPress={() => open(notification)}
-                className="flex-row"
+          {sections.map((section, sectionIndex) => (
+            <View key={section.key} style={{ marginTop: sectionIndex === 0 ? 20 : 28 }}>
+              <AppText
+                family="archivo"
+                weight="black"
+                accessibilityRole="header"
+                style={{ paddingHorizontal: 22, marginBottom: 10, fontSize: 17, letterSpacing: -0.4, color: colors.text }}
+              >
+                {section.title}
+              </AppText>
+
+              <View
                 style={{
-                  gap: 12,
-                  paddingVertical: 16,
-                  paddingHorizontal: 20,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.surfaceSunken,
-                  backgroundColor: unread ? colors.emberWash : "transparent",
+                  marginHorizontal: 16,
+                  borderRadius: 20,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.line,
+                  overflow: "hidden",
                 }}
               >
-                <View
-                  className="rounded-full"
-                  style={{
-                    width: 7,
-                    height: 7,
-                    marginTop: 7,
-                    backgroundColor: unread ? colors.ember : "transparent",
-                  }}
-                />
+                {section.items.map((notification, index) => (
+                  <Fragment key={notification.id}>
+                    {index > 0 ? <View style={{ height: 1, backgroundColor: colors.line }} /> : null}
+                    <NotificationRow
+                      notification={notification}
+                      navigable={resolveRoute(notification.data?.route) != null}
+                      onPress={() => open(notification)}
+                    />
+                  </Fragment>
+                ))}
+              </View>
+            </View>
+          ))}
 
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View className="flex-row items-center justify-between" style={{ gap: 10 }}>
-                    <AppText
-                      family="manrope"
-                      weight="bold"
-                      style={{ fontSize: 12, color: colors.emberDeep }}
-                    >
-                      {TYPE_LABEL[notification.type] ?? "Avant"}
-                    </AppText>
-                    <AppText
-                      family="manrope"
-                      weight="medium"
-                      style={{ fontSize: 11.5, color: colors.textFaint }}
-                    >
-                      {timeAgo(notification.createdAt)}
-                    </AppText>
-                  </View>
-
-                  <AppText
-                    family="archivo"
-                    weight={unread ? "extraBold" : "bold"}
-                    style={{ marginTop: 5, fontSize: 15, letterSpacing: -0.3, color: colors.text }}
-                  >
-                    {notification.title}
-                  </AppText>
-
-                  <AppText
-                    family="manrope"
-                    weight="medium"
-                    style={{ marginTop: 4, fontSize: 13, lineHeight: 19, color: colors.textMuted }}
-                  >
-                    {notification.body}
-                  </AppText>
-                </View>
-              </Pressable>
-            );
-          })}
+          {data.length > 0 ? (
+            <SettingsGroup style={{ marginTop: 28 }}>
+              <SettingsItem
+                icon={BellOutlineIcon}
+                title="Preferências e lembretes"
+                subtitle="O que pode chegar, horário de silêncio e limite diário."
+                onPress={openSettings}
+              />
+            </SettingsGroup>
+          ) : null}
         </ScrollView>
       ) : null}
     </Screen>

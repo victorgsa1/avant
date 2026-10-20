@@ -1,6 +1,5 @@
 import { View } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
@@ -16,10 +15,9 @@ const TOTAL_SEGMENTS = 5;
 
 export function StepHeader({ filled, partial, onBack }: StepHeaderProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-row items-center gap-4 px-6" style={{ paddingTop: insets.top + 14 }}>
+    <View className="flex-row items-center gap-4 px-6" style={{ paddingTop: 14 }}>
       <Pressable
         onPress={onBack}
         hitSlop={10}

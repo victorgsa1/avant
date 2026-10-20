@@ -1,24 +1,23 @@
 import { StatusBar } from "expo-status-bar";
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
 type ScreenProps = {
   children: ReactNode;
 };
 
-// Edge-to-edge: no SafeAreaView here on purpose. Screens render full-bleed
-// so decorative art (rings, blobs, header stripes) can extend behind the
-// status bar. Headers that carry actual readable content are responsible
-// for their own `useSafeAreaInsets().top` padding — see HomeTopBar,
-// ProfileHeader, SocialHeader.
+// Safe area só no topo: nada (cabeçalho ou conteúdo rolando) passa por baixo
+// da status bar / notch, e a faixa do topo herda o fundo da tela. O rodapé
+// fica de fora porque a tab bar e as telas com ação fixa embaixo já somam o
+// próprio `insets.bottom`.
 export function Screen({ children }: ScreenProps) {
   const { colors, isDark } = useTheme();
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.bg }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {children}
-    </View>
+    </SafeAreaView>
   );
 }

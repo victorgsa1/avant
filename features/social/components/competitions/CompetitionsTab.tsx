@@ -47,7 +47,7 @@ function EmptyCompetitions({ onCreate }: { onCreate: () => void }) {
         weight="medium"
         style={{ marginTop: 10, fontSize: 14.5, lineHeight: 21, color: colors.onPaperMuted }}
       >
-        Chame amigos para 7, 14 ou 30 dias. Ganha quem segue melhor o próprio plano — não quem faz mais.
+        Chame amigos para 7, 14 ou 30 dias. Ganha quem segue melhor o próprio plano, não quem faz mais.
       </AppText>
       <Pressable
         onPress={onCreate}

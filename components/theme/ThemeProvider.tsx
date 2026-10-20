@@ -68,8 +68,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Glass, alertas, teclado. Sem isto eles seguem o aparelho — app no escuro
   // com iPhone no claro deixava a tab bar branca a cada troca de aba até a
   // tela rolar. Com o modo fixo, `useColorScheme` passa a devolver esse valor;
-  // "unspecified" devolve o controle ao aparelho.
+  // "unspecified" devolve o controle ao aparelho. O react-native-web não tem
+  // `setColorScheme` (chamar derrubava o app inteiro), e lá não há lado
+  // nativo para acertar: as cores já saem do `mode` acima.
   useEffect(() => {
+    if (process.env.EXPO_OS === "web") return;
     Appearance.setColorScheme(mode === "system" ? "unspecified" : mode);
   }, [mode]);
 

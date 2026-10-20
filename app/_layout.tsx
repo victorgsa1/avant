@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/components/theme/ThemeProvider";
+import { AlertHost } from "@/components/ui/AlertHost";
 import { SessionProvider, useSession } from "@/features/auth/SessionProvider";
 import "../global.css";
 
@@ -135,6 +136,7 @@ export default function RootLayout() {
             <SessionProvider>
               <RootNavigator />
             </SessionProvider>
+            <AlertHost />
           </ThemeProvider>
         </SafeAreaProvider>
       </KeyboardProvider>

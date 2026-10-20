@@ -34,8 +34,6 @@ function goBack() {
 /**
  * A casca das telas que saem do Perfil: voltar fixo no topo e o título
  * grande rolando com o conteúdo, no mesmo tamanho do "Perfil".
- *
- * `Screen` é full-bleed, então o topo cuida do próprio `insets.top`.
  */
 export function SettingsPage({
   title,
@@ -96,7 +94,7 @@ export function SettingsPage({
 
   return (
     <Screen>
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 6 }}>
+      <View style={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 6 }}>
         <Pressable
           onPress={goBack}
           hitSlop={10}

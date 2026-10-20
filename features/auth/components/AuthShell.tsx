@@ -31,7 +31,7 @@ export function AuthShell({ title, subtitle, onBack, children, footer }: AuthShe
           className="flex-1"
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: insets.top + 12,
+            paddingTop: 12,
             paddingBottom: insets.bottom + 24,
             paddingHorizontal: 26,
           }}

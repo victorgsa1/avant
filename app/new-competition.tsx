@@ -89,7 +89,7 @@ export default function NewCompetitionScreen() {
 
         <SettingsSection
           title="Duração"
-          footer="Vence quem tiver a maior consistência média — aderência ao próprio plano, não volume de ações."
+          footer="Vence quem tiver a maior consistência média, ou seja, quem segue melhor o próprio plano. Não conta o volume de ações."
         >
           <OptionPills options={DURATIONS} value={duration} onChange={setDuration} />
         </SettingsSection>

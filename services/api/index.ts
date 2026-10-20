@@ -245,6 +245,8 @@ export const competitionsApi = {
 export const notificationsApi = {
   list: () => http.get<NotificationResponse[]>("/notifications"),
   markRead: (id: string) => http.post<void>(`/notifications/${id}/read`),
+  /** Uma chamada só — por item estouraria o throttler com a lista cheia. */
+  markAllRead: () => http.post<void>("/notifications/read-all"),
   markOpened: (id: string) => http.post<void>(`/notifications/${id}/open`),
 
   reminders: () => http.get<ReminderResponse[]>("/notifications/reminders"),

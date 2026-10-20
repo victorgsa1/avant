@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Platform } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { Pressable } from "@/components/ui/Pressable";
 import { AppText } from "@/components/ui/AppText";
 import { RestartIcon } from "@/components/ui/icons";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useSession } from "@/features/auth/SessionProvider";
 import { userMessage } from "@/services/http/ApiError";
+import { showAlert } from "@/services/native/alert";
 
 /**
  * DEV: atalho flutuante para limpar o onboarding e refazer o fluxo.
@@ -26,16 +27,12 @@ export function DevResetOnboardingButton({ bottom }: { bottom: number }) {
       await resetOnboarding();
     } catch (caught) {
       setBusy(false);
-      Alert.alert("Não deu para limpar", userMessage(caught));
+      showAlert("Não deu para limpar", userMessage(caught));
     }
   };
 
   const confirm = () => {
-    if (Platform.OS === "web") {
-      void run();
-      return;
-    }
-    Alert.alert(
+    showAlert(
       "Limpar onboarding?",
       "Apaga respostas, identidade e plano ativo desta conta e volta para o início do onboarding.",
       [

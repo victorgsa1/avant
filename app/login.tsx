@@ -3,7 +3,7 @@ import { View, type LayoutRectangle } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui/AppText";
 import { Pressable } from "@/components/ui/Pressable";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -34,10 +34,10 @@ export default function LoginScreen() {
   return (
     // A ilustração é clara e não tem versão escura: esta tela fica sempre no
     // tema claro, com o creme da cena de fundo.
-    <View className="flex-1" style={{ backgroundColor: WELCOME_BG }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: WELCOME_BG }}>
       <StatusBar style="dark" />
 
-      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 28 }}>
+      <View style={{ paddingTop: 14, paddingHorizontal: 28 }}>
         <View style={{ marginTop: 24 }}>
           <Animated.View entering={drop(70)}>
             <AppText family="archivo" weight="black" style={headline(colors.text)}>
@@ -120,7 +120,7 @@ export default function LoginScreen() {
           </AppText>
         </Animated.View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

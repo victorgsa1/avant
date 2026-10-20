@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
 type OnboardingCanvasProps = {
@@ -11,7 +11,13 @@ type OnboardingCanvasProps = {
 // `paper` (the card-surface token) rather than the tab screens' `paper-dim`:
 // these are full-screen forms, not dashboards, so they read best closer to
 // white than the app's usual page background.
+//
+// Como o `Screen`, aplica a safe area do topo; o rodapé fica com cada tela.
 export function OnboardingCanvas({ children }: OnboardingCanvasProps) {
   const { colors } = useTheme();
-  return <View className="flex-1" style={{ backgroundColor: colors.surface }}>{children}</View>;
+  return (
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.surface }}>
+      {children}
+    </SafeAreaView>
+  );
 }

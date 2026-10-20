@@ -1,5 +1,4 @@
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AvantLogo } from "@/components/ui/AvantLogo";
 import { Avatar } from "@/components/ui/Avatar";
 import { BellIcon } from "@/components/ui/icons";
@@ -19,8 +18,6 @@ type BrandTopBarProps = {
 
 /**
  * A barra do topo das abas: a marca à esquerda, sino e avatar à direita.
- *
- * `Screen` é full-bleed, então a barra cuida do próprio `insets.top`.
  */
 export function BrandTopBar({
   name,
@@ -31,10 +28,9 @@ export function BrandTopBar({
   showAvatar = true,
 }: BrandTopBarProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-row items-center justify-between px-6" style={{ paddingTop: insets.top + 14 }}>
+    <View className="flex-row items-center justify-between px-6" style={{ paddingTop: 14 }}>
       <View accessible accessibilityRole="header" accessibilityLabel="Avant">
         <AvantLogo height={28} />
       </View>
